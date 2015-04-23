@@ -17,12 +17,22 @@ require "switest/autorun"
 
 class PbxScenario < Switest::Scenario
   def test_dial_and_press_1
+    # First we make an outbound call. All parameters are passed
+    # directly to `Adhearsion::OutboundCall#dial`.
     alice = Agent.dial("sofia/gateway/your-provider/88888888")
+
+    # We set up an agent that will listen for inbound calls.
+    # All parameters are HasGuardedHandlers guards.
     bob = Agent.listen_for_call(to: /^22334455@/)
 
+    # Wait until the call has been answered by the PBX.
     alice.wait_for_answer
+
+    # Send a DTMF
     alice.send_dtmf("1")
 
+    # Check that the call to Bob has already arrived, or wait
+    # up to five seconds for it to arrive.
     assert_call(bob)
   end
 end
