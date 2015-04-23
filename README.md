@@ -1,6 +1,6 @@
 # SWITEST
 
-Switest let's you write functional tests for your voice applications,
+Switest lets you write functional tests for your voice applications,
 using Adhearsion to drive calls via FreeSWITCH.
 
 ## Example
