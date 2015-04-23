@@ -113,7 +113,7 @@ must support inband DTMF for the DTMF features to work.
 
 This is prototype software, but still quite powerful. At the moment
 it is running 50+ scenarios at Firmafon, testing everything from
-IVR menus to attended transfers.
+IVR menus to attended transfers and voicemails.
 
 ## License
 
