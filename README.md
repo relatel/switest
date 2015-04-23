@@ -76,7 +76,7 @@ end
 
 You need:
 
-1. FreeSWITCH instance with mod_rayo configured
+1. FreeSWITCH instance with `mod_rayo` configured
 2. Sofia profile for Switest
 3. The following dialplan for the Switest profile:
     
