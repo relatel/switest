@@ -103,9 +103,17 @@ assertions are available. Switest provides a few custom assertions:
 
 ## Limitations
 
+### DTMF
+
 Due to limitations in `mod_rayo` the only way to send a DTMF at the
 moment, is by playing the tones, so the endpoint you are testing
 must support inband DTMF for the DTMF features to work.
+
+### Early stage
+
+This is prototype software, but still quite powerful. At the moment
+it is running 50+ scenarios at Firmafon, testing everything from
+IVR menus to attended transfers.
 
 ## License
 
