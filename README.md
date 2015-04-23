@@ -32,6 +32,36 @@ end
 ruby test/scenario/pbx_scenario.rb
 ```
 
+Or you might want to test that you can call Bob, and that Bob can
+transfer the call to Charlie by pressing "#1#":
+
+```ruby
+# test/scenario/transfer_scenario.rb
+
+require "switest"
+require "switest/autorun"
+
+class TransferScenario < Switest::Scenario
+  def test_transfer_call
+    bob = Agent.listen_for_call to: /^1000@/
+    alice = Agent.dial("sofia/gateway/your-provider/1000")
+    
+    assert_call(bob)
+    
+    charlie = Agent.listen_for_call to: /^2000@/
+    
+    bob.answer
+    sleep 1
+    bob.send_dtmf("#1#")
+    
+    assert_call(charlie)
+    assert_hungup(bob)
+
+    charlie.hangup
+  end
+end
+```
+
 ## Configuration
 
 You need:
