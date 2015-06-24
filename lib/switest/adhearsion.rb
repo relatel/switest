@@ -20,7 +20,9 @@ module Switest
         config.punchblock.password = "1"
       end
       ::Adhearsion.router do
-        route "Default", Switest::CallController
+        unaccepting do
+          route "Default", Switest::CallController
+        end
       end
       ::Adhearsion::Logging.start(
         nil,
