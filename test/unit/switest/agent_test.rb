@@ -22,7 +22,7 @@ class Switest::AgentTest < Minitest::Test
     agent = Agent.new
     agent.listen_for_call(to: /71999999/)
 
-    offer = Punchblock::Event::Offer.new(to: "71999999")
+    offer = ::Adhearsion::Event::Offer.new(to: "71999999")
     call = ::Adhearsion::Call.new(offer)
     Switest.events.trigger_handler(:inbound_call, call)
 
@@ -33,7 +33,7 @@ class Switest::AgentTest < Minitest::Test
     agent = Agent.new
     agent.listen_for_call(to: /71999999/)
 
-    offer = Punchblock::Event::Offer.new(to: "22334455")
+    offer = ::Adhearsion::Event::Offer.new(to: "22334455")
     call = ::Adhearsion::Call.new(offer)
     Switest.events.trigger_handler(:inbound_call, call)
 
@@ -44,7 +44,7 @@ class Switest::AgentTest < Minitest::Test
     agent = Agent.new
     agent.listen_for_call(to: /71999999/)
 
-    offer = Punchblock::Event::Offer.new(to: "71999999")
+    offer = ::Adhearsion::Event::Offer.new(to: "71999999")
     call = ::Adhearsion::Call.new(offer)
 
     Thread.new {
@@ -74,7 +74,7 @@ class Switest::AgentTest < Minitest::Test
 
     Thread.new {
       sleep 1
-      agent.call << Punchblock::Event::Answered.new
+      agent.call << ::Adhearsion::Event::Answered.new
     }
 
     Timeout.timeout(2) do
@@ -88,7 +88,7 @@ class Switest::AgentTest < Minitest::Test
 
     Thread.new {
       sleep 1
-      agent.call << Punchblock::Event::End.new
+      agent.call << ::Adhearsion::Event::End.new
     }
 
     Timeout.timeout(2) do

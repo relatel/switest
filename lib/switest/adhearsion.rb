@@ -1,7 +1,6 @@
 # encoding: utf-8
 
 require "adhearsion"
-require "adhearsion-asr"
 
 module Switest
   class Adhearsion
@@ -12,26 +11,27 @@ module Switest
     def start!
       ::Adhearsion::Plugin.configure_plugins
       ::Adhearsion.config do |config|
-        config.development do |dev|
-          dev.platform.logging.level = :error
-        end
-        config.platform.after_hangup_lifetime = 3600
-        config.punchblock.username = "switest@localhost"
-        config.punchblock.password = "1"
+        config.core.logging.level = :error
+        config.core.after_hangup_lifetime = 3600
+        config.core.host = "127.0.0.1"
+        config.core.port = 5222
+        config.core.username = "switest@localhost"
+        config.core.password = "1"
       end
       ::Adhearsion.router do
         route "Default", Switest::CallController
       end
       ::Adhearsion::Logging.start(
-        nil,
-        ::Adhearsion.config.platform.logging.level,
-        ::Adhearsion.config.platform.logging.formatter
+        ::Adhearsion.config.core.logging.level,
+        ::Adhearsion.config.core.logging.formatter
       )
       ::Adhearsion::Events.register_handler :exception do |e, l|
         (l || ::Adhearsion.logger).error e
       end 
+      ::Adhearsion::Rayo::Initializer.init
       ::Adhearsion::Plugin.init_plugins
       ::Adhearsion::Plugin.run_plugins
+      ::Adhearsion::Rayo::Initializer.run
       @started = true
       true
     end
@@ -47,6 +47,10 @@ module Switest
           end
         end
       }
+    end
+
+    def stop
+      ::Adhearsion::Rayo::Initializer.client.stop
     end
   end
 end

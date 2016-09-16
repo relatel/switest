@@ -10,9 +10,7 @@ Gem::Specification.new do |s|
   s.files    = Dir["lib/**/*"] + %w(README.md)
   s.test_files = Dir["test/**/*"]
 
-  s.add_dependency "adhearsion", "~> 2.6"
-  s.add_dependency "adhearsion-asr", "~> 1.2"
-  s.add_dependency "punchblock", "~> 2.6"
-  s.add_dependency "timers", "~> 1.1"
+  s.add_dependency "adhearsion", "~> 3.0.0.rc1"
+  s.add_dependency "timers", "~> 4.0"
   s.add_dependency "minitest", "~> 5.5.0"
 end
