@@ -33,6 +33,11 @@ module Switest
       ::Adhearsion::Plugin.run_plugins
       ::Adhearsion::Rayo::Initializer.run
       @started = true
+
+      at_exit {
+        ::Adhearsion::Process.shutdown
+      }
+
       true
     end
 
