@@ -27,12 +27,16 @@ module Switest
       @call = ::Adhearsion::OutboundCall.originate(*args)
     end
 
-    def answer
-      @call.answer
+    def answer(*args)
+      @call.answer(*args)
     end
 
-    def hangup
-      @call.hangup
+    def hangup(*args)
+      @call.hangup(*args)
+    end
+
+    def reject(*args)
+      @call.reject(*args)
     end
 
     def send_dtmf(dtmf)
