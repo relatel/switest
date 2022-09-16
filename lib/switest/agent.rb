@@ -70,7 +70,14 @@ module Switest
     end
 
     def wait_for_answer(timeout: 5)
-      return if @call.start_time
+      # Between Adhearsion 3.0.0.rc1 and the next version (not released as of this
+      # writing), answer_time was added, and the semantics of start_time was changed.
+      # https://github.com/adhearsion/adhearsion/pull/603
+      if @call.respond_to?(:answer_time)
+        return if @call.answer_time
+      else
+        return if @call.start_time
+      end
       wait(timeout) {|blocker|
         @call.on_answer { blocker.signal }
       }
