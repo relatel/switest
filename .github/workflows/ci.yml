@@ -29,8 +29,6 @@ jobs:
           ruby-version: ${{ matrix.ruby-version }}
           bundler: 1.17
 
-      - run: |
-          gem install nokogiri -v '1.6.1' --platform=ruby -- --use-system-libraries
-
+      - run: gem install nokogiri -v '1.6.1' --platform=ruby
       - run: bundle install
       - run: bundle exec rake
