@@ -29,7 +29,7 @@ jobs:
           ruby-version: ${{ matrix.ruby-version }}
           bundler: 1.17
 
-      - run: gem install nokogiri -v '1.6.1' --platform=ruby
+      - run: bundle config build.nokogiri --use-system-libraries
       - run: bundle install
-      - run: bundle exec gem pristine nokogiri
+      # - run: bundle exec gem pristine nokogiri
       - run: bundle exec rake
