@@ -31,4 +31,5 @@ jobs:
 
       - run: gem install nokogiri -v '1.6.1' --platform=ruby
       - run: bundle install
+      - run: bundle exec gem pristine nokogiri
       - run: bundle exec rake
