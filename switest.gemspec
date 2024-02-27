@@ -3,10 +3,10 @@ Gem::Specification.new do |s|
   s.version  = "0.1"
   s.date     = "2015-04-23"
   s.summary  = "Switest"
-  s.email    = "hv@firmafon.dk"
-  s.homepage = "http://github.com/firmafon/switest"
+  s.email    = "teknik@relatel.dk"
+  s.homepage = "http://github.com/relatel/switest"
   s.description = "Functional testing for voice applications"
-  s.authors  = ["Harry Vangberg"]
+  s.authors  = ["Harry Vangberg", "Relatel A/S"]
   s.files    = Dir["lib/**/*"] + %w(README.md)
   s.test_files = Dir["test/**/*"]
 

@@ -1,4 +1,5 @@
-[![Build Status](https://travis-ci.org/firmafon/switest.svg)](https://travis-ci.org/firmafon/switest)
+![Build Status](https://github.com/relatel/switest/actions/workflows/ci.yml/badge.svg)
+
 
 # SWITEST
 
@@ -114,7 +115,7 @@ must support inband DTMF for the DTMF features to work.
 ### Early stage
 
 This is prototype software, but still quite powerful. At the moment
-it is running 50+ scenarios at Firmafon, testing everything from
+it is running 50+ scenarios at Relatel, testing everything from
 IVR menus to attended transfers and voicemails.
 
 ## License
@@ -122,7 +123,7 @@ IVR menus to attended transfers and voicemails.
 ```
 The MIT License (MIT)
 
-Copyright (c) 2015 Firmafon ApS, Harry Vangberg <hv@firmafon.dk>
+Copyright (c) 2015 Relatel A/S
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
