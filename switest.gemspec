@@ -12,5 +12,5 @@ Gem::Specification.new do |s|
 
   s.add_dependency "adhearsion", "~> 3.0.0.rc1"
   s.add_dependency "timers", "~> 4.0"
-  s.add_dependency "minitest", "~> 5.5.0"
+  s.add_dependency "minitest", ">= 5.5", "< 6.0"
 end
