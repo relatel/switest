@@ -10,7 +10,9 @@ Gem::Specification.new do |s|
   s.files    = Dir["lib/**/*"] + %w(README.md)
   s.test_files = Dir["test/**/*"]
 
-  s.add_dependency "adhearsion", "~> 3.0.0.rc1"
-  s.add_dependency "timers", "~> 4.0"
+  s.add_dependency "blather", "~> 2.0"
+  s.add_dependency "concurrent-ruby", "~> 1.2"
   s.add_dependency "minitest", ">= 5.5", "< 6.0"
+
+  s.required_ruby_version = ">= 3.0"
 end

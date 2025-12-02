@@ -1,4 +1,4 @@
-# encoding: utf-8
+# frozen_string_literal: true
 
 require "test_helper"
 
@@ -12,8 +12,8 @@ class Switest::AgentTest < Minitest::Test
     agent = Agent.new
     agent.listen_for_call
 
-    call = ::Adhearsion::Call.new
-    Switest.events.trigger_handler(:inbound_call, call)
+    call = create_mock_call
+    Switest.events.trigger(:inbound_call, call)
 
     assert_equal call, agent.call
   end
@@ -22,9 +22,8 @@ class Switest::AgentTest < Minitest::Test
     agent = Agent.new
     agent.listen_for_call(to: /71999999/)
 
-    offer = ::Adhearsion::Event::Offer.new(to: "71999999")
-    call = ::Adhearsion::Call.new(offer)
-    Switest.events.trigger_handler(:inbound_call, call)
+    call = create_mock_call(to: "71999999")
+    Switest.events.trigger(:inbound_call, call)
 
     assert_equal call, agent.call
   end
@@ -33,9 +32,8 @@ class Switest::AgentTest < Minitest::Test
     agent = Agent.new
     agent.listen_for_call(to: /71999999/)
 
-    offer = ::Adhearsion::Event::Offer.new(to: "22334455")
-    call = ::Adhearsion::Call.new(offer)
-    Switest.events.trigger_handler(:inbound_call, call)
+    call = create_mock_call(to: "22334455")
+    Switest.events.trigger(:inbound_call, call)
 
     assert_nil agent.call
   end
@@ -44,13 +42,12 @@ class Switest::AgentTest < Minitest::Test
     agent = Agent.new
     agent.listen_for_call(to: /71999999/)
 
-    offer = ::Adhearsion::Event::Offer.new(to: "71999999")
-    call = ::Adhearsion::Call.new(offer)
+    call = create_mock_call(to: "71999999")
 
-    Thread.new {
-      sleep 1
-      Switest.events.trigger_handler(:inbound_call, call)
-    }
+    Thread.new do
+      sleep 0.5
+      Switest.events.trigger(:inbound_call, call)
+    end
 
     Timeout.timeout(2) do
       agent.wait_for_call
@@ -70,29 +67,41 @@ class Switest::AgentTest < Minitest::Test
 
   def test_wait_for_answer
     agent = Agent.new
-    agent.call = ::Adhearsion::OutboundCall.new
+    agent.call = create_mock_call
 
-    Thread.new {
-      sleep 1
-      agent.call << ::Adhearsion::Event::Answered.new
-    }
+    Thread.new do
+      sleep 0.5
+      agent.call.simulate_answer
+    end
 
     Timeout.timeout(2) do
-      agent.wait_for_answer
+      result = agent.wait_for_answer
+      assert result
+      assert agent.call.answered?
     end
   end
 
   def test_wait_for_end
     agent = Agent.new
-    agent.call = ::Adhearsion::OutboundCall.new
+    agent.call = create_mock_call
+    agent.call.simulate_answer # First answer the call
 
-    Thread.new {
-      sleep 1
-      agent.call << ::Adhearsion::Event::End.new
-    }
+    Thread.new do
+      sleep 0.5
+      agent.call.simulate_end(:hangup)
+    end
 
     Timeout.timeout(2) do
-      agent.wait_for_end
+      result = agent.wait_for_end
+      assert result
+      assert agent.call.ended?
     end
+  end
+
+  private
+
+  def create_mock_call(to: nil, from: nil, headers: {})
+    mock_client = Rayo::MockClient.new
+    Rayo::MockCall.new(mock_client, to: to, from: from, headers: headers)
   end
 end

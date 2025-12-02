@@ -1,47 +1,52 @@
-# encoding: utf-8
+# frozen_string_literal: true
 
 require "minitest"
 
 module Switest
+  # Base class for Switest test scenarios.
+  # Provides setup/teardown for Rayo connection and test assertions.
   class Scenario < Minitest::Test
     def setup
-      Switest.adhearsion.start
+      Switest.connection.start
       Switest.reset
     end
 
     def teardown
-      Switest.adhearsion.cleanup
+      Switest.connection.cleanup
     end
 
-    def timer
-      @_timer ||= Switest::Timer.new
-    end
-
+    # Assert that an agent received a call
     def assert_call(agent, timeout: 5)
       agent.wait_for_call(timeout: timeout)
       assert(agent.call, "#{agent} did not have a call")
     end
 
+    # Assert that an agent did not receive a call
     def assert_no_call(agent, timeout: 5)
       agent.wait_for_call(timeout: timeout)
       assert_nil(agent.call, "#{agent} did have a call")
     end
 
+    # Assert that an agent's call was hung up
     def assert_hungup(agent, timeout: 5)
       agent.wait_for_end(timeout: timeout)
-      assert(agent.call.end_reason, "#{agent} was not ended")
+      assert(agent.call&.end_reason, "#{agent} was not ended")
     end
 
+    # Assert that an agent's call was not hung up
     def assert_not_hungup(agent, timeout: 5)
-      assert_nil(agent.call.end_reason, "#{agent} was hungup")
+      assert_nil(agent.call&.end_reason, "#{agent} was hungup")
     end
 
-    def assert_dtmf(agent, dtmf, timeout: 5)
-      result = agent.receive_dtmf(
-        timeout: timeout,
-        limit: dtmf.size
-      )
-      assert_equal(dtmf, result)
+    # Assert that an agent's call was answered
+    def assert_answered(agent, timeout: 5)
+      agent.wait_for_answer(timeout: timeout)
+      assert(agent.call&.answered?, "#{agent} was not answered")
+    end
+
+    # Helper to sleep for a duration (use sparingly in tests)
+    def wait(seconds)
+      sleep(seconds)
     end
   end
 end
