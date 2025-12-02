@@ -1,12 +1,13 @@
 # frozen_string_literal: true
 
-require_relative "rayo/stanzas"
-require_relative "rayo/call"
-require_relative "rayo/client"
+require_relative "esl/error"
+require_relative "esl/event"
+require_relative "esl/connection"
+require_relative "esl/call"
+require_relative "esl/client"
 
 module Switest
-  # Manages the Rayo connection lifecycle.
-  # Replaces the old Adhearsion integration.
+  # Manages the ESL connection lifecycle.
   class Connection
     attr_reader :client
 
@@ -21,10 +22,9 @@ module Switest
     end
 
     def start!
-      @client = Rayo::Client.new(
+      @client = ESL::Client.new(
         host: @config[:host],
         port: @config[:port],
-        username: @config[:username],
         password: @config[:password],
         logger: Switest.logger
       )

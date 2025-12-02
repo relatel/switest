@@ -57,6 +57,20 @@ module Switest
       @call.play_audio("tone_stream://d=200;#{dtmf}")
     end
 
+    # Receive DTMF digits from the caller
+    # @param max_digits [Integer] Maximum number of digits to collect
+    # @param timeout [Numeric] Timeout in seconds
+    # @param terminator [String, nil] Digit that terminates input (e.g., "#")
+    # @return [String, nil] The collected digits, or nil on timeout
+    def receive_dtmf(max_digits: 1, timeout: 5, terminator: "#")
+      @call&.receive_dtmf(max_digits: max_digits, timeout: timeout, terminator: terminator)
+    end
+
+    # Normalized call headers/variables (keys are downcased with - converted to _)
+    def variables
+      @call&.variables || {}
+    end
+
     # Listen for an inbound call matching the given conditions
     # @param conditions [Hash] Conditions to match (e.g., { to: /pattern/ })
     def listen_for_call(conditions = {})

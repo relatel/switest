@@ -44,9 +44,24 @@ module Switest
       assert(agent.call&.answered?, "#{agent} was not answered")
     end
 
+    # Assert that an agent received specific DTMF digits
+    # @param agent [Agent] The agent to check
+    # @param dtmf [String] The expected DTMF digits
+    # @param timeout [Numeric] Timeout in seconds
+    def assert_dtmf(agent, dtmf, timeout: 5)
+      result = agent.receive_dtmf(max_digits: dtmf.size, timeout: timeout)
+      assert_equal(dtmf, result, "Expected DTMF '#{dtmf}' but got '#{result}'")
+    end
+
     # Helper to sleep for a duration (use sparingly in tests)
     def wait(seconds)
       sleep(seconds)
+    end
+
+    # Get the timer instance for scheduling callbacks
+    # @return [Timer]
+    def timer
+      @timer ||= Timer.new
     end
   end
 end

@@ -101,7 +101,7 @@ class Switest::AgentTest < Minitest::Test
   private
 
   def create_mock_call(to: nil, from: nil, headers: {})
-    mock_client = Rayo::MockClient.new
-    Rayo::MockCall.new(mock_client, to: to, from: from, headers: headers)
+    mock_client = Switest::ESL::MockClient.new
+    Switest::ESL::MockCall.new(mock_client, to: to, from: from, headers: headers)
   end
 end

@@ -7,6 +7,7 @@ require "switest/events"
 require "switest/connection"
 require "switest/agent"
 require "switest/scenario"
+require "switest/timer"
 
 module Switest
   class << self
@@ -60,13 +61,12 @@ module Switest
 
   # Configuration holder
   class Configuration
-    attr_accessor :host, :port, :username, :password, :log_level
+    attr_accessor :host, :port, :password, :log_level
 
     def initialize
       @host = "127.0.0.1"
-      @port = 5222
-      @username = "switest@localhost"
-      @password = "1"
+      @port = 8021
+      @password = "ClueCon"
       @log_level = Logger::DEBUG
     end
 
@@ -74,7 +74,6 @@ module Switest
       {
         host: @host,
         port: @port,
-        username: @username,
         password: @password
       }
     end
