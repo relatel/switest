@@ -15,21 +15,15 @@ jobs:
       matrix:
         ruby-version:
           - 2.6
+          - 2.7
+          - 3.4
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: awalsh128/cache-apt-pkgs-action@latest
-        with:
-          packages: libxslt-dev libxml2-dev zlib1g-dev
-          version: 1.0
-
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby-version }}
-          bundler: 1.17
 
-      - run: bundle config build.nokogiri --use-system-libraries
       - run: bundle install
-      # - run: bundle exec gem pristine nokogiri
       - run: bundle exec rake
