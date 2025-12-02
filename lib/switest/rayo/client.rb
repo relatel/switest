@@ -83,7 +83,7 @@ module Switest
       def send_command(command)
         raise ClientError, "Not connected" unless connected?
 
-        @blather.write_to_stream(command)
+        @blather.write_with_handler(command)
       end
 
       # Send a command and wait for response
@@ -99,7 +99,7 @@ module Switest
           response_event.set
         end
 
-        @blather.write_to_stream(command)
+        @blather.write_with_handler(command)
 
         unless response_event.wait(timeout)
           raise ClientError, "Timeout waiting for command response"
@@ -161,7 +161,7 @@ module Switest
       def start_event_machine
         @em_thread = Thread.new do
           EM.run do
-            @blather.run
+            @blather.connect
           end
         end
       end
