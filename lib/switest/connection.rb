@@ -11,12 +11,7 @@ module Switest
     attr_reader :client
 
     def initialize(config = {})
-      @config = {
-        host: "127.0.0.1",
-        port: 5222,
-        username: "switest@localhost",
-        password: "1"
-      }.merge(config)
+      @config = Switest.configuration.to_h.merge(config)
       @client = nil
       @started = false
     end

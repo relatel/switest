@@ -94,7 +94,7 @@ module Switest
         response_stanza = nil
 
         # Register a one-time handler for this IQ
-        handler_id = @blather.register_handler(:iq, id: command.id) do |iq|
+        @blather.register_handler(:iq, id: command.id) do |iq|
           response_stanza = iq
           response_event.set
         end

@@ -107,25 +107,29 @@ module Switest
       # Called by Client when events are received
 
       def handle_answered
-        @mutex.synchronize do
+        callbacks_to_run = @mutex.synchronize do
           return if @state == :answered || @state == :ended
 
           @answer_time = Time.now
           @state = :answered
+          callbacks = @answer_callbacks.dup
+          @answer_callbacks.clear
+          callbacks
         end
-        @answer_callbacks.each(&:call)
-        @answer_callbacks.clear
+        callbacks_to_run&.each(&:call)
       end
 
       def handle_end(reason)
-        @mutex.synchronize do
+        callbacks_to_run = @mutex.synchronize do
           return if @state == :ended
 
           @end_reason = reason
           @state = :ended
+          callbacks = @end_callbacks.dup
+          @end_callbacks.clear
+          callbacks
         end
-        @end_callbacks.each(&:call)
-        @end_callbacks.clear
+        callbacks_to_run&.each(&:call)
       end
 
       # Wait for answer with timeout

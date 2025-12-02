@@ -6,6 +6,7 @@ Bundler.require(:default, :test) if defined?(Bundler)
 
 require "minitest/autorun"
 require "timeout"
+require "securerandom"
 require "switest"
 
 class Minitest::Test

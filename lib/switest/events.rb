@@ -8,7 +8,6 @@ module Switest
   class Events
     def initialize
       @handlers = Concurrent::Map.new { |h, k| h[k] = Concurrent::Array.new }
-      @mutex = Mutex.new
     end
 
     # Register a permanent handler for an event type
