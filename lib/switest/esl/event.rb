@@ -1,11 +1,19 @@
 # frozen_string_literal: true
 
-require "uri"
-
 module Switest
   module ESL
-    # Parses and represents FreeSWITCH ESL events.
-    # Events are received in plain text format with headers separated by newlines.
+    # Represents a FreeSWITCH ESL event.
+    #
+    # ESL messages use HTTP-style framing:
+    #   - Headers are "Key: Value" pairs, one per line
+    #   - Headers end with a blank line
+    #   - Body length is determined by Content-Length header
+    #   - Header values are URL-encoded (percent encoding, NOT + for space)
+    #
+    # For text/event-plain, there's a two-level structure:
+    #   Level 1 (packet): Content-Type: text/event-plain, Content-Length: N
+    #   Level 2 (event):  Packet body contains event headers (+ optional event body)
+    #
     class Event
       attr_reader :name, :headers, :body
 
@@ -15,42 +23,70 @@ module Switest
         @body = body
       end
 
-      # Parse an ESL event from raw text
-      # Format:
-      #   Header-Name: Header-Value
-      #   Another-Header: Another-Value
-      #   Content-Length: 123
-      #
-      #   <body if Content-Length present>
-      def self.parse(raw)
-        return nil if raw.nil? || raw.empty?
-
-        lines = raw.split("\n")
+      # Parse headers from a string (used for both packet and event headers)
+      # @param raw [String] Raw header text
+      # @return [Hash] Parsed headers with URL-decoded values
+      def self.parse_headers(raw)
         headers = {}
-        body = nil
-
-        lines.each do |line|
-          break if line.strip.empty?
+        raw.each_line do |line|
+          line = line.chomp
+          break if line.empty?
 
           if line.include?(": ")
             key, value = line.split(": ", 2)
-            # URL-decode header values (ESL uses URL encoding)
-            headers[key] = URI.decode_www_form_component(value.to_s.strip)
+            headers[key] = decode_value(value.to_s)
           end
         end
+        headers
+      end
 
-        # Extract body if Content-Length is present
+      # Parse a complete ESL message (headers + optional body)
+      # @param raw [String] Raw message text
+      # @return [Event, nil]
+      def self.parse(raw)
+        return nil if raw.nil? || raw.empty?
+
+        # Split headers from body
+        header_section, body_section = raw.split("\n\n", 2)
+        headers = parse_headers(header_section)
+
+        return nil if headers.empty?
+
+        # Extract body based on Content-Length
+        body = nil
         if headers["Content-Length"]
-          content_length = headers["Content-Length"].to_i
-          if content_length > 0
-            # Find the blank line and extract body after it
-            blank_idx = raw.index("\n\n")
-            body = raw[blank_idx + 2, content_length] if blank_idx
-          end
+          length = headers["Content-Length"].to_i
+          body = body_section[0, length] if length > 0 && body_section
         end
 
         event_name = headers["Event-Name"] || headers["Content-Type"]
         new(name: event_name, headers: headers, body: body)
+      end
+
+      # Parse the body of a text/event-plain packet (second-level parsing)
+      # @param body [String] Packet body containing event headers
+      # @return [Array<Hash, String>] [event_headers, event_body]
+      def self.parse_event_plain(body)
+        return [{}, nil] if body.nil? || body.empty?
+
+        # Split event headers from event body
+        header_section, remaining = body.split("\n\n", 2)
+        event_headers = parse_headers(header_section)
+
+        # Extract event body if Content-Length present in event headers
+        event_body = nil
+        if event_headers["Content-Length"] && remaining
+          length = event_headers["Content-Length"].to_i
+          event_body = remaining[0, length] if length > 0
+        end
+
+        [event_headers, event_body]
+      end
+
+      # Decode ESL header value (percent encoding only, + stays as +)
+      # ESL uses URL encoding but does NOT encode space as +
+      def self.decode_value(value)
+        value.gsub(/%([0-9A-Fa-f]{2})/) { [$1.hex].pack("C") }
       end
 
       # Channel UUID

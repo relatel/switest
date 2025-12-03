@@ -33,6 +33,11 @@ module Switest
         @variables ||= normalize_headers(@headers)
       end
 
+      # Sofia profile name this call arrived on
+      def sofia_profile
+        variables["sofia_profile_name"]
+      end
+
       # Call state queries
 
       def alive?

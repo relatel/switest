@@ -3,6 +3,23 @@
 Thread.abort_on_exception = true
 
 require "logger"
+
+# Core utilities
+require "switest/constants"
+require "switest/errors"
+require "switest/concerns/loggable"
+require "switest/condition_matcher"
+
+# ESL layer
+require "switest/esl/parser"
+require "switest/esl/command_builder"
+require "switest/esl/header_extractor"
+require "switest/esl/event"
+require "switest/esl/connection"
+require "switest/esl/client"
+require "switest/esl/call"
+
+# High-level abstractions
 require "switest/events"
 require "switest/connection"
 require "switest/agent"
@@ -59,14 +76,21 @@ module Switest
     end
   end
 
-  # Configuration holder
+  # Configuration holder.
+  #
+  # @example
+  #   Switest.configure do |config|
+  #     config.host = "192.168.1.100"
+  #     config.log_level = Logger::INFO
+  #   end
+  #
   class Configuration
     attr_accessor :host, :port, :password, :log_level
 
     def initialize
-      @host = "127.0.0.1"
-      @port = 8021
-      @password = "ClueCon"
+      @host = Constants::Defaults::HOST
+      @port = Constants::Defaults::PORT
+      @password = Constants::Defaults::PASSWORD
       @log_level = Logger::DEBUG
     end
 

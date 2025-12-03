@@ -1,143 +1,186 @@
 # frozen_string_literal: true
 
 require "socket"
+require "timeout"
 require "concurrent"
 
 module Switest
   module ESL
     # Low-level TCP connection to FreeSWITCH Event Socket.
+    #
     # Handles authentication, command sending, and event receiving.
+    # Uses a background thread for reading events from the socket.
+    #
+    # @example
+    #   conn = Connection.new(host: "localhost", port: 8021, password: "ClueCon")
+    #   conn.connect
+    #   conn.on_event { |event| puts event.name }
+    #   conn.api("status")
+    #   conn.disconnect
+    #
     class Connection
+      include Concerns::Loggable
+
       attr_reader :host, :port
 
-      def initialize(host:, port: 8021, password: "ClueCon", logger: nil)
+      # @param host [String] FreeSWITCH host
+      # @param port [Integer] ESL port (default: 8021)
+      # @param password [String] ESL password
+      # @param logger [Logger, nil] Logger instance
+      def initialize(host:, port: Constants::Defaults::PORT, password: Constants::Defaults::PASSWORD, logger: nil)
         @host = host
         @port = port
         @password = password
         @logger = logger
+        @parser = Parser.new
+        @command_builder = CommandBuilder.new
+
         @socket = nil
         @connected = false
         @reader_thread = nil
         @event_callbacks = Concurrent::Array.new
         @response_queue = Queue.new
         @mutex = Mutex.new
+        @shutdown = false
       end
 
-      # Connect to FreeSWITCH and authenticate
+      # Connect to FreeSWITCH and authenticate.
+      #
+      # @raise [ConnectionError] if connection fails
+      # @raise [AuthError] if authentication fails
       def connect
         @mutex.synchronize do
           return if @connected
 
-          log(:debug, "Connecting to #{@host}:#{@port}")
-          @socket = TCPSocket.new(@host, @port)
-          @socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
-
-          # Read auth/request
-          response = read_response
-          unless response&.headers&.[]("Content-Type") == "auth/request"
-            raise ConnectionError, "Expected auth/request, got: #{response&.headers}"
-          end
-
-          # Send auth command
-          send_raw("auth #{@password}\n\n")
-          response = read_response
-
-          unless response&.headers&.[]("Reply-Text")&.start_with?("+OK")
-            raise AuthError, "Authentication failed: #{response&.headers&.[]('Reply-Text')}"
-          end
-
+          establish_connection
+          authenticate
           @connected = true
-          log(:info, "Connected and authenticated to FreeSWITCH")
+          @shutdown = false
 
-          # Start background reader thread
+          log(:info, "Connected and authenticated to FreeSWITCH")
           start_reader_thread
         end
       end
 
-      # Disconnect from FreeSWITCH
+      # Disconnect from FreeSWITCH gracefully.
       def close
         @mutex.synchronize do
           return unless @connected
 
+          @shutdown = true
           @connected = false
-          @reader_thread&.kill
-          @reader_thread = nil
-          @socket&.close
-          @socket = nil
+          stop_reader_thread
+          close_socket
+
           log(:info, "Disconnected from FreeSWITCH")
         end
       end
 
       alias disconnect close
 
+      # @return [Boolean] true if connected
       def connected?
-        @connected && !@socket.nil? && !@socket.closed?
+        @connected && socket_open?
       end
 
-      # Send a command and wait for response
-      def send_recv(command, timeout: 5)
-        raise ConnectionError, "Not connected" unless connected?
+      # Send a command and wait for response.
+      #
+      # @param command [String] ESL command
+      # @param timeout [Integer] Timeout in seconds
+      # @return [Event] Response event
+      # @raise [DisconnectedError] if not connected
+      # @raise [TimeoutError] if command times out
+      def send_recv(command, timeout: Constants::Defaults::COMMAND_TIMEOUT)
+        raise DisconnectedError, "Not connected" unless connected?
 
-        @mutex.synchronize do
-          send_raw("#{command}\n\n")
-        end
-
-        # Wait for response from reader thread
-        begin
-          Timeout.timeout(timeout) do
-            @response_queue.pop
-          end
-        rescue Timeout::Error
-          raise TimeoutError, "Command timed out: #{command}"
-        end
+        @mutex.synchronize { send_raw("#{command}\n\n") }
+        wait_for_response(command, timeout)
       end
 
-      # Send a command without waiting for response
+      # Send a command without waiting for response.
+      #
+      # @param command [String] ESL command
+      # @raise [DisconnectedError] if not connected
       def send_async(command)
-        raise ConnectionError, "Not connected" unless connected?
+        raise DisconnectedError, "Not connected" unless connected?
 
-        @mutex.synchronize do
-          send_raw("#{command}\n\n")
-        end
+        @mutex.synchronize { send_raw("#{command}\n\n") }
       end
 
-      # Subscribe to events
+      # Subscribe to events.
+      #
+      # @param events [Array<String>] Event names to subscribe to
+      # @return [Event] Response
       def subscribe_events(*events)
-        event_list = events.empty? ? "all" : events.join(" ")
-        send_recv("event plain #{event_list}")
+        command = @command_builder.event_subscribe(events: events)
+        send_recv(command)
       end
 
-      # Register an event callback
+      # Register an event callback.
+      #
+      # @yield [Event] Called for each received event
       def on_event(&block)
         @event_callbacks << block
       end
 
-      # Send a message to a specific channel (sendmsg)
+      # Send a message to a specific channel.
+      #
+      # @param uuid [String] Channel UUID
+      # @param app [String] Application name
+      # @param arg [String, nil] Application argument
+      # @param async [Boolean] Send without waiting for response
+      # @return [Event, nil] Response event or nil if async
       def sendmsg(uuid, app:, arg: nil, async: false)
-        lines = ["sendmsg #{uuid}"]
-        lines << "call-command: execute"
-        lines << "execute-app-name: #{app}"
-        lines << "execute-app-arg: #{arg}" if arg
+        command = @command_builder.sendmsg(uuid: uuid, app: app, arg: arg)
 
         if async
-          send_async(lines.join("\n"))
+          send_async(command)
           nil
         else
-          send_recv(lines.join("\n"))
+          send_recv(command)
         end
       end
 
-      # Execute bgapi command (background API)
+      # Execute background API command.
+      #
+      # @param command [String] API command
+      # @return [Event] Response
       def bgapi(command)
-        send_recv("bgapi #{command}")
+        send_recv(@command_builder.api(command, background: true))
       end
 
-      # Execute api command (synchronous)
+      # Execute synchronous API command.
+      #
+      # @param command [String] API command
+      # @return [Event] Response
       def api(command)
-        send_recv("api #{command}")
+        send_recv(@command_builder.api(command, background: false))
       end
 
       private
+
+      def establish_connection
+        log(:debug, "Connecting to #{@host}:#{@port}")
+
+        @socket = TCPSocket.new(@host, @port)
+        @socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
+      rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH => e
+        raise ConnectionError, "Failed to connect to #{@host}:#{@port}: #{e.message}"
+      end
+
+      def authenticate
+        response = read_response
+        unless response&.headers&.[]("Content-Type") == Constants::ContentTypes::AUTH_REQUEST
+          raise ConnectionError, "Expected auth/request, got: #{response&.headers}"
+        end
+
+        send_raw("#{@command_builder.auth(@password)}\n\n")
+        response = read_response
+
+        unless response&.headers&.[]("Reply-Text")&.start_with?("+OK")
+          raise AuthError, "Authentication failed: #{response&.headers&.[]('Reply-Text')}"
+        end
+      end
 
       def send_raw(data)
         log(:debug, ">>> #{data.strip}")
@@ -146,56 +189,87 @@ module Switest
       end
 
       def read_response
-        headers = {}
-        body = nil
+        headers = read_headers
+        return nil if headers.empty?
 
-        # Read headers until blank line
+        body = read_body(headers)
+        @parser.build_event(headers: headers, body: body)
+      end
+
+      def read_headers
+        header_lines = []
+
         while (line = @socket.gets)
           line = line.chomp
           break if line.empty?
 
-          if line.include?(": ")
-            key, value = line.split(": ", 2)
-            headers[key] = URI.decode_www_form_component(value.to_s)
-          end
+          header_lines << line
         end
 
-        return nil if headers.empty?
+        return {} if header_lines.empty?
 
-        # Read body if Content-Length present
-        if headers["Content-Length"]
-          content_length = headers["Content-Length"].to_i
-          body = @socket.read(content_length) if content_length > 0
-        end
+        @parser.parse_headers(header_lines.join("\n"))
+      end
 
-        Event.new(name: headers["Content-Type"], headers: headers, body: body)
+      def read_body(headers)
+        return nil unless headers["Content-Length"]
+
+        length = headers["Content-Length"].to_i
+        return nil unless length.positive?
+
+        @socket.read(length)
+      end
+
+      def wait_for_response(command, timeout)
+        Timeout.timeout(timeout) { @response_queue.pop }
+      rescue Timeout::Error
+        raise TimeoutError, "Command timed out: #{command}"
       end
 
       def start_reader_thread
-        @reader_thread = Thread.new do
-          loop do
-            break unless connected?
+        @reader_thread = Thread.new { reader_loop }
+      end
 
-            begin
-              event = read_response
-              next unless event
+      def stop_reader_thread
+        return unless @reader_thread
 
-              log(:debug, "<<< #{event.name}: #{event.uuid}")
+        # Give the thread a chance to exit gracefully
+        @reader_thread.join(1)
+        @reader_thread.kill if @reader_thread.alive?
+        @reader_thread = nil
+      end
 
-              # Route response to waiting command or to event callbacks
-              if event.name == "command/reply" || event.name == "api/response"
-                @response_queue << event
-              else
-                dispatch_event(event)
-              end
-            rescue IOError, Errno::ECONNRESET => e
-              log(:error, "Connection error: #{e.message}")
-              break
-            rescue StandardError => e
-              log(:error, "Reader error: #{e.message}\n#{e.backtrace.first(5).join("\n")}")
-            end
-          end
+      def reader_loop
+        until @shutdown
+          break unless connected?
+
+          process_next_event
         end
+      rescue IOError, Errno::ECONNRESET => e
+        log(:error, "Connection error: #{e.message}") unless @shutdown
+      rescue StandardError => e
+        log(:error, "Reader error: #{e.message}\n#{e.backtrace.first(5).join("\n")}")
+      end
+
+      def process_next_event
+        event = read_response
+        return unless event
+
+        log(:debug, "<<< #{event.name}: #{event.uuid}")
+        route_response(event)
+      end
+
+      def route_response(event)
+        if response_event?(event)
+          @response_queue << event
+        else
+          dispatch_event(event)
+        end
+      end
+
+      def response_event?(event)
+        [Constants::ContentTypes::COMMAND_REPLY,
+         Constants::ContentTypes::API_RESPONSE].include?(event.name)
       end
 
       def dispatch_event(event)
@@ -206,10 +280,17 @@ module Switest
         end
       end
 
-      def log(level, message)
-        return unless @logger
+      def close_socket
+        @socket&.close
+        @socket = nil
+      end
 
-        @logger.send(level, "[ESL] #{message}")
+      def socket_open?
+        !@socket.nil? && !@socket.closed?
+      end
+
+      def log_prefix
+        "ESL"
       end
     end
   end

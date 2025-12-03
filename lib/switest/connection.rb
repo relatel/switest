@@ -1,10 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "esl/error"
-require_relative "esl/event"
-require_relative "esl/connection"
-require_relative "esl/call"
-require_relative "esl/client"
+# ESL components are already required by the main switest.rb
 
 module Switest
   # Manages the ESL connection lifecycle.

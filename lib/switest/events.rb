@@ -4,27 +4,48 @@ require "concurrent"
 
 module Switest
   # Simple event pub/sub system.
-  # Replaces HasGuardedHandlers with a lightweight implementation.
+  #
+  # Provides a lightweight publish/subscribe mechanism for event handling.
+  # Supports both permanent and one-time handlers with condition matching.
+  #
+  # @example
+  #   events = Events.new
+  #   events.register_handler(:call, to: /^1234/) { |call| puts "Got call!" }
+  #   events.trigger(:call, call_object)
+  #
   class Events
     def initialize
       @handlers = Concurrent::Map.new { |h, k| h[k] = Concurrent::Array.new }
     end
 
-    # Register a permanent handler for an event type
+    # Register a permanent handler for an event type.
+    #
+    # @param event_type [Symbol] Event type to handle
+    # @param conditions [Hash] Conditions to match
+    # @yield Called when event matches conditions
+    # @return [Handler] The registered handler
     def register_handler(event_type, conditions = {}, &block)
       handler = Handler.new(block, conditions, permanent: true)
       @handlers[event_type] << handler
       handler
     end
 
-    # Register a one-time handler that is removed after first match
+    # Register a one-time handler that is removed after first match.
+    #
+    # @param event_type [Symbol] Event type to handle
+    # @param conditions [Hash] Conditions to match
+    # @yield Called when event matches conditions (once)
+    # @return [Handler] The registered handler
     def register_tmp_handler(event_type, conditions = {}, &block)
       handler = Handler.new(block, conditions, permanent: false)
       @handlers[event_type] << handler
       handler
     end
 
-    # Trigger an event, calling all matching handlers
+    # Trigger an event, calling all matching handlers.
+    #
+    # @param event_type [Symbol] Event type to trigger
+    # @param args [Array] Arguments to pass to handlers
     def trigger(event_type, *args)
       return unless @handlers.key?(event_type)
 
@@ -45,15 +66,19 @@ module Switest
       handlers_to_remove.each { |h| @handlers[event_type].delete(h) }
     end
 
-    # Alias for compatibility
     alias trigger_handler trigger
 
-    # Remove a specific handler
+    # Remove a specific handler.
+    #
+    # @param event_type [Symbol] Event type
+    # @param handler [Handler] Handler to remove
     def unregister_handler(event_type, handler)
       @handlers[event_type]&.delete(handler)
     end
 
-    # Clear all handlers for an event type
+    # Clear all handlers for an event type.
+    #
+    # @param event_type [Symbol, nil] Event type to clear, or nil to clear all
     def clear_handlers(event_type = nil)
       if event_type
         @handlers.delete(event_type)
@@ -62,40 +87,39 @@ module Switest
       end
     end
 
-    # Handler wrapper with condition matching
+    # Handler wrapper with condition matching.
+    #
+    # Delegates condition matching to ConditionMatcher for consistent
+    # matching behavior across the library.
     class Handler
       attr_reader :conditions
 
+      # @param block [Proc] Block to call when triggered
+      # @param conditions [Hash] Conditions to match
+      # @param permanent [Boolean] Whether handler persists after triggering
       def initialize(block, conditions, permanent:)
         @block = block
         @conditions = conditions
+        @matcher = ConditionMatcher.new(conditions)
         @permanent = permanent
       end
 
+      # @return [Boolean] true if handler persists after triggering
       def permanent?
         @permanent
       end
 
+      # Check if arguments match the handler's conditions.
+      #
+      # @param args [Array] Arguments to match against
+      # @return [Boolean] true if conditions match
       def matches?(*args)
-        return true if @conditions.empty?
-
-        # For call objects, match against call properties
-        obj = args.first
-        return true unless obj.respond_to?(:to) || obj.respond_to?(:from)
-
-        @conditions.all? do |key, expected|
-          actual = obj.respond_to?(key) ? obj.send(key) : nil
-          case expected
-          when Regexp
-            expected.match?(actual.to_s)
-          when Proc
-            expected.call(actual)
-          else
-            actual == expected || actual.to_s == expected.to_s
-          end
-        end
+        @matcher.match?(args.first)
       end
 
+      # Call the handler block.
+      #
+      # @param args [Array] Arguments to pass to the block
       def call(*args)
         @block.call(*args)
       end
