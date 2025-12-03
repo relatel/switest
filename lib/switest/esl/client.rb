@@ -94,9 +94,6 @@ module Switest
 
       def route_event(event)
         uuid = event.uuid
-
-        log(:debug, "Event received", name: event.name, uuid: uuid, direction: event.direction, dest: event.destination)
-
         return unless uuid
 
         case event.name
@@ -120,13 +117,7 @@ module Switest
 
       def handle_channel_create(event)
         uuid = event.uuid
-
-        if @active_calls[uuid]
-          log(:debug, "Already tracking call", uuid: uuid)
-          return
-        end
-
-        log(:info, "New call", uuid: uuid, to: event.destination, from: event.caller_id, direction: event.direction)
+        return if @active_calls[uuid]
 
         call = Call.new(
           @connection,
@@ -141,9 +132,6 @@ module Switest
       end
 
       def notify_offer_callbacks(call, event)
-        sofia_profile = event.variable("sofia_profile_name")
-        log(:debug, "Triggering offer callbacks", uuid: call.uuid, profile: sofia_profile)
-
         @offer_callbacks.each do |callback|
           callback.call(call)
         rescue StandardError => e

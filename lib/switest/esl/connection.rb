@@ -160,8 +160,6 @@ module Switest
       private
 
       def establish_connection
-        log(:debug, "Connecting to #{@host}:#{@port}")
-
         @socket = TCPSocket.new(@host, @port)
         @socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
       rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH => e
@@ -183,7 +181,6 @@ module Switest
       end
 
       def send_raw(data)
-        log(:debug, ">>> #{data.strip}")
         @socket.write(data)
         @socket.flush
       end
@@ -255,7 +252,6 @@ module Switest
         event = read_response
         return unless event
 
-        log(:debug, "<<< #{event.name}: #{event.uuid}")
         route_response(event)
       end
 

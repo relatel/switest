@@ -10,6 +10,7 @@ module Switest
       attr_reader :id, :to, :from, :headers
       attr_reader :start_time, :answer_time, :end_reason
 
+      alias uuid id
       alias jid id
 
       def initialize(connection, uuid:, to: nil, from: nil, headers: {})
@@ -63,7 +64,7 @@ module Switest
       # Call control commands
 
       def answer
-        raise CallError, "Cannot answer a call that is not offered" unless offered?
+        return if answered? || ended?
 
         @connection.sendmsg(@id, app: "answer")
       end
@@ -76,7 +77,7 @@ module Switest
       end
 
       def reject(reason = :decline, headers = {})
-        raise CallError, "Cannot reject a call that is not offered" unless offered?
+        return if answered? || ended?
 
         # Map reasons to SIP response codes
         code = case reason
