@@ -10,7 +10,6 @@ Gem::Specification.new do |s|
   s.files    = Dir["lib/**/*"] + %w(README.md)
   s.test_files = Dir["test/**/*"]
 
-  s.add_dependency "adhearsion", "~> 3.0.0.rc1"
   s.add_dependency "timers", "~> 4.0"
   s.add_dependency "minitest", ">= 5.5", "< 6.0"
 end
