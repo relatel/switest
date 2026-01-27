@@ -1,8 +1,8 @@
 Gem::Specification.new do |s|
   s.name     = "switest"
-  s.version  = "0.1"
-  s.date     = "2015-04-23"
+  s.version  = "0.2.0"
   s.summary  = "Switest"
+  s.required_ruby_version = ">= 3.3"
   s.email    = "relatel@firmafon.dk"
   s.homepage = "http://github.com/relatel/switest"
   s.description = "Functional testing for voice applications"

@@ -18,17 +18,17 @@ module Switest
     end
 
     def assert_call(agent, timeout: 5)
-      agent.wait_for_call(timeout: timeout)
+      agent.wait_for_call(timeout)
       assert(agent.call, "#{agent} did not have a call")
     end
 
     def assert_no_call(agent, timeout: 5)
-      agent.wait_for_call(timeout: timeout)
+      agent.wait_for_call(timeout)
       assert_nil(agent.call, "#{agent} did have a call")
     end
 
     def assert_hungup(agent, timeout: 5)
-      agent.wait_for_end(timeout: timeout)
+      agent.wait_for_end(timeout)
       assert(agent.call.end_reason, "#{agent} was not ended")
     end
 
