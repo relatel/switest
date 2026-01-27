@@ -62,14 +62,14 @@ module Switest
       }
     end
 
-    def wait_for_call(timeout: 5)
+    def wait_for_call(timeout = 5)
       return if @call
       wait(timeout) {|blocker|
         register_tmp_handler(:call) { blocker.signal }
       }
     end
 
-    def wait_for_answer(timeout: 5)
+    def wait_for_answer(timeout = 5)
       # Between Adhearsion 3.0.0.rc1 and the next version (not released as of this
       # writing), answer_time was added, and the semantics of start_time was changed.
       # https://github.com/adhearsion/adhearsion/pull/603
@@ -83,7 +83,7 @@ module Switest
       }
     end
 
-    def wait_for_end(timeout: 5)
+    def wait_for_end(timeout = 5)
       return if @call.end_reason
       wait(timeout) {|blocker|
         @call.on_end { blocker.signal }

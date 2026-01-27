@@ -63,7 +63,7 @@ class Switest::AgentTest < Minitest::Test
     agent.listen_for_call(to: /71999999/)
 
     Timeout.timeout(2) do
-      agent.wait_for_call(timeout: 1)
+      agent.wait_for_call(1)
       assert_nil agent.call
     end
   end
