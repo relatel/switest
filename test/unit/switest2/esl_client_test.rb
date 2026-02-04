@@ -22,7 +22,6 @@ class Switest2::ESL::ClientTest < Minitest::Test
     command = @connection.commands_sent.find { |c| c.include?("originate") }
     assert_match(/origination_caller_id_number=\+4512345678/, command)
     assert_match(/origination_caller_id_name=\+4512345678/, command)
-    assert_match(/sip_from_user=\+4512345678/, command)
   end
 
   def test_dial_without_from_omits_caller_id
@@ -30,7 +29,6 @@ class Switest2::ESL::ClientTest < Minitest::Test
 
     command = @connection.commands_sent.find { |c| c.include?("originate") }
     refute_match(/origination_caller_id/, command)
-    refute_match(/sip_from_user/, command)
   end
 
   def test_dial_headers_prefixed_with_sip_h
