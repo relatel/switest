@@ -1,0 +1,123 @@
+# frozen_string_literal: true
+
+module Switest2
+  class Agent
+    class << self
+      # Shared client for all agents in a test
+      attr_accessor :client, :events
+
+      def setup(client, events)
+        @client = client
+        @events = events
+      end
+
+      def teardown
+        @client = nil
+        @events = nil
+      end
+
+      def dial(destination, from: nil, headers: {})
+        raise "Agent.setup not called" unless @client
+
+        call = @client.dial(to: destination, from: from, headers: headers)
+        new(call)
+      end
+
+      def listen_for_call(guards = {})
+        raise "Agent.setup not called" unless @client
+
+        agent = new(nil)
+
+        # Register a one-time handler for matching inbound calls
+        @events.once(:offer, guards) do |data|
+          agent.instance_variable_set(:@call, data[:call])
+        end
+
+        agent
+      end
+    end
+
+    attr_reader :call
+
+    def initialize(call)
+      @call = call
+    end
+
+    def call?
+      !@call.nil?
+    end
+
+    def answer
+      raise "No call to answer" unless @call
+      @call.answer
+    end
+
+    def hangup
+      raise "No call to hangup" unless @call
+      @call.hangup
+    end
+
+    def reject(reason = :decline)
+      raise "No call to reject" unless @call
+      @call.reject(reason)
+    end
+
+    def send_dtmf(digits)
+      raise "No call for DTMF" unless @call
+      @call.send_dtmf(digits)
+    end
+
+    def receive_dtmf(count: 1, timeout: 5)
+      raise "No call for DTMF" unless @call
+      @call.receive_dtmf(count: count, timeout: timeout)
+    end
+
+    def wait_for_call(timeout: 5)
+      deadline = Time.now + timeout
+      while Time.now < deadline
+        return true if @call
+        sleep 0.1
+      end
+      false
+    end
+
+    def wait_for_answer(timeout: 5)
+      raise "No call to wait for" unless @call
+      @call.wait_for_answer(timeout: timeout)
+    end
+
+    def wait_for_end(timeout: 5)
+      raise "No call to wait for" unless @call
+      @call.wait_for_end(timeout: timeout)
+    end
+
+    # Delegate state queries to call
+    def alive?
+      @call&.alive? || false
+    end
+
+    def active?
+      @call&.active? || false
+    end
+
+    def answered?
+      @call&.answered? || false
+    end
+
+    def ended?
+      @call&.ended? || false
+    end
+
+    def start_time
+      @call&.start_time
+    end
+
+    def answer_time
+      @call&.answer_time
+    end
+
+    def end_reason
+      @call&.end_reason
+    end
+  end
+end

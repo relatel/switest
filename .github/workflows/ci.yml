@@ -1,0 +1,63 @@
+name: Tests
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  unit:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 4.0
+          bundler-cache: true
+
+      - name: Run unit tests
+        run: bundle exec rake test
+
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+
+    services:
+      freeswitch:
+        image: ghcr.io/patrickbaus/freeswitch-docker
+        ports:
+          - 8021:8021
+        options: >-
+          --health-cmd "fs_cli -x status"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 4.0
+          bundler-cache: true
+
+      - name: Copy FreeSWITCH config
+        run: |
+          docker cp docker/freeswitch/event_socket.conf.xml ${{ job.services.freeswitch.id }}:/etc/freeswitch/autoload_configs/event_socket.conf.xml
+          docker cp docker/freeswitch/acl.conf.xml ${{ job.services.freeswitch.id }}:/etc/freeswitch/autoload_configs/acl.conf.xml
+          docker exec ${{ job.services.freeswitch.id }} fs_cli -x "reloadxml"
+          docker exec ${{ job.services.freeswitch.id }} fs_cli -x "reload mod_event_socket"
+          sleep 2
+
+      - name: Run integration tests
+        env:
+          FREESWITCH_HOST: localhost
+          FREESWITCH_PORT: 8021
+          FREESWITCH_PASSWORD: ClueCon
+        run: bundle exec rake integration

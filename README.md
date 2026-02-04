@@ -1,31 +1,28 @@
-[![Build Status](https://travis-ci.org/firmafon/switest.svg)](https://travis-ci.org/firmafon/switest)
+# Switest (2)
 
-# SWITEST
-
-Switest lets you write functional tests for your voice applications,
-using Adhearsion to drive calls via FreeSWITCH.
+Switest2 lets you write functional tests for your voice applications,
+using direct ESL (Event Socket Library) communication with FreeSWITCH.
 
 ## Example
 
 To test your fancy new PBX and its phone menu, you could write the
-following Switest scenario, which dials your number, presses "1"
+following Switest2 scenario, which dials your number, presses "1"
 and checks that Bob was called as a result of that:
 
 ```ruby
 # test/scenario/pbx_scenario.rb
 
-require "switest"
-require "switest/autorun"
+require "switest2"
+require "switest2/autorun"
 
-class PbxScenario < Switest::Scenario
+class PbxScenario < Switest2::Scenario
   def test_dial_and_press_1
-    # First we make an outbound call. All parameters are passed
-    # directly to `Adhearsion::OutboundCall#dial`.
+    # First we make an outbound call. The destination is a FreeSWITCH dial string.
     alice = Agent.dial("sofia/gateway/your-provider/88888888")
 
     # We set up an agent that will listen for inbound calls.
-    # All parameters are HasGuardedHandlers guards.
-    bob = Agent.listen_for_call(to: /^22334455@/)
+    # Parameters are guards that match against call properties.
+    bob = Agent.listen_for_call(to: /^22334455/)
 
     # Wait until the call has been answered by the PBX.
     alice.wait_for_answer
@@ -50,22 +47,22 @@ transfer the call to Charlie by pressing "#1#":
 ```ruby
 # test/scenario/transfer_scenario.rb
 
-require "switest"
-require "switest/autorun"
+require "switest2"
+require "switest2/autorun"
 
-class TransferScenario < Switest::Scenario
+class TransferScenario < Switest2::Scenario
   def test_transfer_call
-    bob = Agent.listen_for_call to: /^1000@/
+    bob = Agent.listen_for_call(to: /^1000/)
     alice = Agent.dial("sofia/gateway/your-provider/1000")
-    
+
     assert_call(bob)
-    
-    charlie = Agent.listen_for_call to: /^2000@/
-    
+
+    charlie = Agent.listen_for_call(to: /^2000/)
+
     bob.answer
     sleep 1
     bob.send_dtmf("#1#")
-    
+
     assert_call(charlie)
     assert_hungup(bob)
 
@@ -78,44 +75,62 @@ end
 
 You need:
 
-1. FreeSWITCH instance with `mod_rayo` configured
-2. Sofia profile for Switest
-3. The following dialplan for the Switest profile:
-    
+1. FreeSWITCH instance with `mod_event_socket` enabled (this is the default)
+2. Sofia profile for Switest2
+3. Event Socket configuration in `event_socket.conf.xml`:
+
     ```xml
-    <context name="switest">
-      <extension name="switest">
+    <configuration name="event_socket.conf" description="Socket Client">
+      <settings>
+        <param name="nat-map" value="false"/>
+        <param name="listen-ip" value="127.0.0.1"/>
+        <param name="listen-port" value="8021"/>
+        <param name="password" value="ClueCon"/>
+      </settings>
+    </configuration>
+    ```
+
+4. Dialplan for inbound calls to be parked (so Switest2 can control them):
+
+    ```xml
+    <context name="switest2">
+      <extension name="switest2">
         <condition>
-          <action application="rayo" data="switest"/>
+          <action application="park"/>
         </condition>
       </extension>
     </context>
     ```
 
+### Ruby Configuration
+
+You can configure the ESL connection in your test helper:
+
+```ruby
+Switest2.configure do |config|
+  config.host = "127.0.0.1"  # FreeSWITCH host
+  config.port = 8021          # ESL port
+  config.password = "ClueCon" # ESL password
+  config.default_timeout = 5  # Default timeout for assertions
+end
+```
+
 ## Provided assertions
 
-`Switest::Scenario` inherits from `Minitest::Test`, so all your regular
-assertions are available. Switest provides a few custom assertions:
+`Switest2::Scenario` inherits from `Minitest::Test`, so all your regular
+assertions are available. Switest2 provides a few custom assertions:
 
-* `assert_call`
-* `assert_no_call`
-* `assert_hungup`
-* `assert_not_hungup`
-* `assert_dtmf`
+* `assert_call(agent, timeout: 5)` - Assert agent receives a call
+* `assert_no_call(agent, timeout: 2)` - Assert agent does not receive a call
+* `assert_hungup(agent, timeout: 5)` - Assert agent's call has ended
+* `assert_not_hungup(agent, timeout: 2)` - Assert agent's call is still active
+* `assert_dtmf(agent, dtmf, timeout: 5)` - Assert agent receives specific DTMF digits
 
-## Limitations
+## Dependencies
 
-### DTMF
-
-Due to limitations in `mod_rayo` the only way to send a DTMF at the
-moment, is by playing the tones, so the endpoint you are testing
-must support inband DTMF for the DTMF features to work.
-
-### Early stage
-
-This is prototype software, but still quite powerful. At the moment
-it is running 50+ scenarios at Firmafon, testing everything from
-IVR menus to attended transfers and voicemails.
+* Ruby >= 3.0
+* concurrent-ruby ~> 1.2
+* minitest >= 5.5, < 6.0
 
 ## License
 

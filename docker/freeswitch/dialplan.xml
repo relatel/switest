@@ -1,0 +1,8 @@
+<include>
+  <extension name="switest2">
+    <condition field="destination_number" expression="^(.*)$">
+      <action application="set" data="hangup_after_bridge=true"/>
+      <action application="park"/>
+    </condition>
+  </extension>
+</include>

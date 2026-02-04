@@ -1,0 +1,28 @@
+services:
+  freeswitch:
+    image: ghcr.io/patrickbaus/freeswitch-docker
+    platform: linux/amd64
+    volumes:
+      - ./docker/freeswitch/event_socket.conf.xml:/etc/freeswitch/autoload_configs/event_socket.conf.xml:ro
+      - ./docker/freeswitch/acl.conf.xml:/etc/freeswitch/autoload_configs/acl.conf.xml:ro
+      - ./docker/freeswitch/dialplan.xml:/etc/freeswitch/dialplan/public/00_switest2.xml:ro
+    healthcheck:
+      test: ["CMD", "fs_cli", "-x", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  test:
+    image: ruby:4.0
+    working_dir: /app
+    volumes:
+      - .:/app
+    depends_on:
+      freeswitch:
+        condition: service_healthy
+    environment:
+      FREESWITCH_HOST: freeswitch
+      FREESWITCH_PORT: 8021
+      FREESWITCH_PASSWORD: ClueCon
+    command: >
+      sh -c "bundle install --quiet && bundle exec rake integration"
