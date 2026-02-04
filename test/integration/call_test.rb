@@ -127,6 +127,41 @@ class CallIntegrationTest < Switest2::Scenario
     bob.wait_for_end(timeout: 5)
   end
 
+  def test_receive_dtmf
+    # Dial a destination that sends DTMF digits "123"
+    alice = Agent.dial("loopback/dtmf_123/public")
+
+    assert alice.call?, "Agent should have a call"
+
+    # Wait for answer
+    alice.wait_for_answer(timeout: 5)
+    assert alice.answered?, "Call should be answered"
+
+    # Receive DTMF digits (the dialplan sends "123" after 500ms)
+    digits = alice.call.receive_dtmf(count: 3, timeout: 5)
+
+    assert_equal "123", digits, "Should receive DTMF digits 123"
+
+    # Clean up
+    alice.hangup
+    alice.wait_for_end(timeout: 5)
+  end
+
+  def test_receive_dtmf_partial_timeout
+    # Dial a destination that sends only "12"
+    alice = Agent.dial("loopback/dtmf_12/public")
+
+    alice.wait_for_answer(timeout: 5)
+
+    # Try to receive 5 digits but only 2 will arrive
+    digits = alice.call.receive_dtmf(count: 5, timeout: 3)
+
+    assert_equal "12", digits, "Should receive partial DTMF digits"
+
+    alice.hangup
+    alice.wait_for_end(timeout: 5)
+  end
+
   def test_multiple_concurrent_calls
     # Start two calls at once
     alice = Agent.dial("loopback/echo/public")
