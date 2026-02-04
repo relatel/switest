@@ -31,27 +31,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: "4.0"
-          bundler-cache: true
-
-      - name: Start FreeSWITCH
-        run: docker compose up -d --wait freeswitch
-
       - name: Run integration tests
-        env:
-          FREESWITCH_HOST: 127.0.0.1
-          FREESWITCH_PORT: 8021
-          FREESWITCH_PASSWORD: ClueCon
-          DEBUG_ESL: "1"
-        run: bundle exec rake integration
+        run: docker compose run --rm test
 
       - name: Show FreeSWITCH logs on failure
         if: failure()
         run: docker compose logs freeswitch
 
-      - name: Stop FreeSWITCH
+      - name: Stop containers
         if: always()
         run: docker compose down
