@@ -38,17 +38,7 @@ jobs:
           bundler-cache: true
 
       - name: Start FreeSWITCH
-        run: |
-          docker compose up -d freeswitch
-          # Wait for FreeSWITCH to be healthy
-          for i in {1..30}; do
-            if docker compose exec -T freeswitch fs_cli -x "status" > /dev/null 2>&1; then
-              echo "FreeSWITCH is ready"
-              break
-            fi
-            echo "Waiting for FreeSWITCH... ($i/30)"
-            sleep 2
-          done
+        run: docker compose up -d --wait freeswitch
 
       - name: Run integration tests
         env:
