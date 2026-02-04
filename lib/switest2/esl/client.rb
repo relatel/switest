@@ -30,11 +30,20 @@ module Switest2
 
       def stop
         @running = false
-        @reader_thread&.join(2)
-        # Hangup all active calls and wait for them to complete
-        @calls.each_value { |call| call.hangup(wait: 2) unless call.ended? }
-        @calls.clear
+        # Hangup all active calls while still connected
+        @calls.each_value do |call|
+          call.hangup("NORMAL_CLEARING") unless call.ended?
+        rescue => e
+          # Ignore errors during cleanup
+        end
+        # Brief wait for hangup commands to process
+        sleep 0.2
+        # Disconnect to unblock the reader thread (which is blocked on socket read)
         @connection&.disconnect
+        @reader_thread&.join(2)
+        # Mark any remaining calls as ended
+        @calls.each_value { |call| call.handle_hangup("SWITCH_SHUTDOWN") unless call.ended? }
+        @calls.clear
       end
 
       def dial(to:, from: nil, headers: {})

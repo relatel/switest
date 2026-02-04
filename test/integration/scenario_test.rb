@@ -46,8 +46,8 @@ class ScenarioIntegrationTest < Switest2::Scenario
     # Wait a moment for the call to be set up
     sleep 0.5
 
-    # Clean up
-    agent.hangup
+    # Clean up - wait for hangup to complete
+    agent.hangup(wait: 5)
   end
 
   def test_wait_for_call_timeout
