@@ -219,12 +219,9 @@ class CallIntegrationTest < Switest2::Scenario
     assert bob.call?, "Bob should have a call"
     refute_equal alice.call.id, bob.call.id, "Calls should have different IDs"
 
-    # Wait for both to answer
-    alice.wait_for_answer(timeout: 5)
-    bob.wait_for_answer(timeout: 5)
-
-    assert alice.answered?, "Alice should be answered"
-    assert bob.answered?, "Bob should be answered"
+    # Wait for both to answer (longer timeout for CI)
+    assert alice.wait_for_answer(timeout: 10), "Alice should be answered"
+    assert bob.wait_for_answer(timeout: 10), "Bob should be answered"
 
     # Hangup both
     alice.hangup
