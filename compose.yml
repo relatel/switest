@@ -2,6 +2,8 @@ services:
   freeswitch:
     image: ghcr.io/patrickbaus/freeswitch-docker
     platform: linux/amd64
+    ports:
+      - "8021:8021"
     volumes:
       - ./docker/freeswitch/event_socket.conf.xml:/etc/freeswitch/autoload_configs/event_socket.conf.xml:ro
       - ./docker/freeswitch/acl.conf.xml:/etc/freeswitch/autoload_configs/acl.conf.xml:ro

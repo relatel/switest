@@ -17,7 +17,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: 4.0
+          ruby-version: "4.0"
           bundler-cache: true
 
       - name: Run unit tests
@@ -26,17 +26,7 @@ jobs:
   integration:
     name: Integration Tests
     runs-on: ubuntu-latest
-
-    services:
-      freeswitch:
-        image: ghcr.io/patrickbaus/freeswitch-docker
-        ports:
-          - 8021:8021
-        options: >-
-          --health-cmd "fs_cli -x status"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v4
@@ -44,22 +34,33 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: 4.0
+          ruby-version: "4.0"
           bundler-cache: true
 
-      - name: Copy FreeSWITCH config
+      - name: Start FreeSWITCH
         run: |
-          docker cp docker/freeswitch/event_socket.conf.xml ${{ job.services.freeswitch.id }}:/etc/freeswitch/autoload_configs/event_socket.conf.xml
-          docker cp docker/freeswitch/acl.conf.xml ${{ job.services.freeswitch.id }}:/etc/freeswitch/autoload_configs/acl.conf.xml
-          docker cp docker/freeswitch/dialplan.xml ${{ job.services.freeswitch.id }}:/etc/freeswitch/dialplan/public/00_switest2.xml
-          docker exec ${{ job.services.freeswitch.id }} fs_cli -x "reloadxml"
-          docker exec ${{ job.services.freeswitch.id }} fs_cli -x "reloadacl"
-          docker exec ${{ job.services.freeswitch.id }} fs_cli -x "reload mod_event_socket"
-          sleep 2
+          docker compose up -d freeswitch
+          # Wait for FreeSWITCH to be healthy
+          for i in {1..30}; do
+            if docker compose exec -T freeswitch fs_cli -x "status" > /dev/null 2>&1; then
+              echo "FreeSWITCH is ready"
+              break
+            fi
+            echo "Waiting for FreeSWITCH... ($i/30)"
+            sleep 2
+          done
 
       - name: Run integration tests
         env:
-          FREESWITCH_HOST: localhost
+          FREESWITCH_HOST: 127.0.0.1
           FREESWITCH_PORT: 8021
           FREESWITCH_PASSWORD: ClueCon
         run: bundle exec rake integration
+
+      - name: Show FreeSWITCH logs on failure
+        if: failure()
+        run: docker compose logs freeswitch
+
+      - name: Stop FreeSWITCH
+        if: always()
+        run: docker compose down
