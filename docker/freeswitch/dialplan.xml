@@ -25,6 +25,13 @@
     </condition>
   </extension>
 
+  <!-- Inbound test destinations - park for agent control -->
+  <extension name="switest2-inbound-test">
+    <condition field="destination_number" expression="^(inbound_test|reject_test)$">
+      <action application="park"/>
+    </condition>
+  </extension>
+
   <!-- Default: park anything else -->
   <extension name="switest2-default">
     <condition field="destination_number" expression="^(.*)$">

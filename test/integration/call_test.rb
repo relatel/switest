@@ -162,6 +162,55 @@ class CallIntegrationTest < Switest2::Scenario
     alice.wait_for_end(timeout: 15)
   end
 
+  def test_inbound_call_via_loopback
+    # Set up a listener for inbound calls to "inbound_test"
+    # The loopback B-leg will appear as an inbound call
+    bob = Agent.listen_for_call(to: /inbound_test/)
+
+    refute bob.call?, "Bob should not have a call yet"
+
+    # Dial loopback - the B-leg goes to dialplan as inbound
+    alice = Agent.dial("loopback/inbound_test/public")
+
+    assert alice.call?, "Alice should have outbound call"
+
+    # Bob should receive the inbound call (B-leg)
+    assert bob.wait_for_call(timeout: 5), "Bob should receive inbound call"
+    assert bob.call?, "Bob should have a call"
+    assert bob.call.inbound?, "Bob's call should be inbound"
+
+    # Bob answers
+    bob.answer
+    sleep 0.5
+
+    # Both should now be connected
+    assert alice.wait_for_answer(timeout: 5), "Alice should see answer"
+    assert bob.answered?, "Bob should be answered"
+
+    # Cleanup
+    alice.hangup
+    alice.wait_for_end(timeout: 15)
+    bob.wait_for_end(timeout: 15)
+  end
+
+  def test_inbound_call_reject
+    bob = Agent.listen_for_call(to: /reject_test/)
+
+    alice = Agent.dial("loopback/reject_test/public")
+
+    assert bob.wait_for_call(timeout: 5), "Bob should receive call"
+
+    # Bob rejects the call
+    bob.reject(:busy)
+
+    # Both calls should end
+    alice.wait_for_end(timeout: 15)
+    bob.wait_for_end(timeout: 15)
+
+    assert alice.ended?, "Alice should be ended"
+    assert bob.ended?, "Bob should be ended"
+  end
+
   def test_multiple_concurrent_calls
     # Start two calls at once
     alice = Agent.dial("loopback/echo/public")
