@@ -162,7 +162,6 @@ class CallIntegrationTest < Switest2::Scenario
   end
 
   def test_inbound_call_via_loopback
-    skip "Flaky on CI - loopback timing issues"
     # Set up a listener for inbound calls to "inbound_test"
     # The loopback B-leg will appear as an inbound call
     bob = Agent.listen_for_call(to: /inbound_test/)
@@ -194,7 +193,6 @@ class CallIntegrationTest < Switest2::Scenario
   end
 
   def test_inbound_call_reject
-    skip "Flaky on CI - loopback timing issues"
     bob = Agent.listen_for_call(to: /reject_test/)
 
     alice = Agent.dial("loopback/reject_test/public")
@@ -213,7 +211,6 @@ class CallIntegrationTest < Switest2::Scenario
   end
 
   def test_multiple_concurrent_calls
-    skip "Flaky on CI - timing issues with concurrent hangups"
     # Start two calls at once
     alice = Agent.dial("loopback/echo/public")
     bob = Agent.dial("loopback/echo/public")

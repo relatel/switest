@@ -100,6 +100,9 @@ module Switest2
       end
 
       def handle_event(event)
+        if ENV["DEBUG_ESL"]
+          $stderr.puts "[ESL] #{event.name} uuid=#{event.uuid} other=#{event["Other-Leg-Unique-ID"]} dir=#{event.call_direction}"
+        end
         case event.name
         when "CHANNEL_CREATE"
           handle_channel_create(event)
@@ -152,6 +155,9 @@ module Switest2
         return unless uuid
 
         call = @calls[uuid]
+        if ENV["DEBUG_ESL"]
+          $stderr.puts "[ESL] HANGUP_COMPLETE for #{uuid}, found_call=#{!call.nil?}, tracked_uuids=#{@calls.keys.inspect}"
+        end
         return unless call
 
         cause = event.hangup_cause
