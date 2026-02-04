@@ -45,6 +45,7 @@ module Switest2
         if from
           vars << "origination_caller_id_number=#{from}"
           vars << "origination_caller_id_name=#{from}"
+          vars << "sip_from_user=#{from}"
         end
         # Prefix with sip_h_ to send as actual SIP headers
         headers.each { |k, v| vars << "sip_h_#{k}=#{v}" }
