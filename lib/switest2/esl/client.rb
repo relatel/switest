@@ -145,8 +145,12 @@ module Switest2
         return unless uuid
 
         call = @calls[uuid]
+        other_uuid = event["Other-Leg-Unique-ID"]
         # For loopback calls, also check the other leg's UUID
-        call ||= @calls[event["Other-Leg-Unique-ID"]]
+        call ||= @calls[other_uuid] if other_uuid
+        if ENV["DEBUG_ESL"]
+          $stderr.puts "[ESL] ANSWER for #{uuid}, found=#{!call.nil?}, other=#{other_uuid}, tracked=#{@calls.keys.inspect}"
+        end
         call&.handle_answer
       end
 
