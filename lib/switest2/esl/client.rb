@@ -46,7 +46,8 @@ module Switest2
           vars << "origination_caller_id_number=#{from}"
           vars << "origination_caller_id_name=#{from}"
         end
-        headers.each { |k, v| vars << "#{k}=#{v}" }
+        # Prefix with sip_h_ to send as actual SIP headers
+        headers.each { |k, v| vars << "sip_h_#{k}=#{v}" }
 
         var_string = "{#{vars.join(",")}}"
 
