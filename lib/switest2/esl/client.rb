@@ -29,7 +29,20 @@ module Switest2
       end
 
       def stop
+        # Hangup all active calls before disconnecting
+        if @connection&.connected?
+          @calls.each_value do |call|
+            next if call.ended?
+            begin
+              call.hangup("NORMAL_CLEARING", wait: 2)
+            rescue
+              # Ignore errors during cleanup
+            end
+          end
+        end
+
         @connection&.disconnect
+
         # Mark any remaining calls as ended locally
         @calls.each_value { |call| call.handle_hangup("SWITCH_SHUTDOWN") unless call.ended? }
         @calls.clear
