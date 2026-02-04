@@ -31,8 +31,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Start FreeSWITCH
+        run: docker compose up -d freeswitch
+
+      - name: Wait for FreeSWITCH to be healthy
+        run: |
+          for i in {1..30}; do
+            if docker compose exec -T freeswitch fs_cli -x "status" 2>/dev/null | grep -q "UP"; then
+              echo "FreeSWITCH is ready"
+              exit 0
+            fi
+            echo "Waiting for FreeSWITCH... ($i)"
+            sleep 2
+          done
+          echo "FreeSWITCH failed to start"
+          exit 1
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+
       - name: Run integration tests
-        run: docker compose run --rm test
+        env:
+          FREESWITCH_HOST: 127.0.0.1
+          FREESWITCH_PORT: 8021
+          FREESWITCH_PASSWORD: ClueCon
+          DEBUG_ESL: "1"
+        run: bundle exec rake integration
 
       - name: Show FreeSWITCH logs on failure
         if: failure()

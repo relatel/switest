@@ -26,5 +26,6 @@ services:
       FREESWITCH_HOST: freeswitch
       FREESWITCH_PORT: 8021
       FREESWITCH_PASSWORD: ClueCon
+      DEBUG_ESL: "1"
     command: >
       sh -c "bundle install --quiet && bundle exec rake integration"
