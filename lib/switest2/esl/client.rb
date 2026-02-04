@@ -12,8 +12,6 @@ module Switest2
         @calls = Concurrent::Map.new
         @offer_handlers = []
         @mutex = Mutex.new
-        @running = false
-        @reader_thread = nil
       end
 
       def start
@@ -23,18 +21,15 @@ module Switest2
           password: Switest2.configuration.password
         )
         @connection.connect
-        @running = true
-        @reader_thread = Thread.new { event_reader_loop }
+
+        # Register event handler with connection
+        @connection.on_event { |response| handle_response(response) }
+
         self
       end
 
       def stop
-        @running = false
-        # Disconnect first to unblock the reader thread and prevent hangs
-        # Note: This means calls won't get explicit hangup commands, but FreeSWITCH
-        # will clean them up when the ESL connection closes
         @connection&.disconnect
-        @reader_thread&.join(2)
         # Mark any remaining calls as ended locally
         @calls.each_value { |call| call.handle_hangup("SWITCH_SHUTDOWN") unless call.ended? }
         @calls.clear
@@ -88,22 +83,13 @@ module Switest2
 
       private
 
-      def event_reader_loop
-        while @running && @connection.connected?
-          begin
-            response = @connection.read_event
-            next unless response && response[:body]
+      def handle_response(response)
+        return unless response && response[:body]
 
-            event = Event.parse(response[:body])
-            next unless event
+        event = Event.parse(response[:body])
+        return unless event
 
-            handle_event(event)
-          rescue Switest2::ConnectionError
-            break unless @running
-          rescue
-            # Ignore errors in event reader
-          end
-        end
+        handle_event(event)
       end
 
       def handle_event(event)
