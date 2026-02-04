@@ -30,18 +30,12 @@ module Switest2
 
       def stop
         @running = false
-        # Hangup all active calls while still connected
-        @calls.each_value do |call|
-          call.hangup("NORMAL_CLEARING") unless call.ended?
-        rescue => e
-          # Ignore errors during cleanup
-        end
-        # Brief wait for hangup commands to process
-        sleep 0.2
-        # Disconnect to unblock the reader thread (which is blocked on socket read)
+        # Disconnect first to unblock the reader thread and prevent hangs
+        # Note: This means calls won't get explicit hangup commands, but FreeSWITCH
+        # will clean them up when the ESL connection closes
         @connection&.disconnect
         @reader_thread&.join(2)
-        # Mark any remaining calls as ended
+        # Mark any remaining calls as ended locally
         @calls.each_value { |call| call.handle_hangup("SWITCH_SHUTDOWN") unless call.ended? }
         @calls.clear
       end
