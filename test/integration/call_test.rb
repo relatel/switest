@@ -223,12 +223,9 @@ class CallIntegrationTest < Switest2::Scenario
     assert alice.wait_for_answer(timeout: 10), "Alice should be answered"
     assert bob.wait_for_answer(timeout: 10), "Bob should be answered"
 
-    # Hangup both
-    alice.hangup
-    bob.hangup
-
-    alice.wait_for_end(timeout: 15)
-    bob.wait_for_end(timeout: 15)
+    # Hangup both (wait for completion)
+    alice.hangup(wait: 15)
+    bob.hangup(wait: 15)
 
     assert alice.ended?, "Alice should be ended"
     assert bob.ended?, "Bob should be ended"
