@@ -57,14 +57,20 @@ module Switest2
       end
 
       # Actions
-      def answer
+      def answer(wait: false)
         return unless @state == :offered && inbound?
         sendmsg("execute", "answer")
+        return unless wait
+        timeout = wait == true ? 5 : wait
+        wait_for_answer(timeout: timeout)
       end
 
-      def hangup(cause = "NORMAL_CLEARING")
+      def hangup(cause = "NORMAL_CLEARING", wait: false)
         return if ended?
         sendmsg("hangup", nil, cause)
+        return unless wait
+        timeout = wait == true ? 5 : wait
+        wait_for_end(timeout: timeout)
       end
 
       def reject(reason = :decline)

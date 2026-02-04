@@ -31,7 +31,8 @@ module Switest2
       def stop
         @running = false
         @reader_thread&.join(2)
-        @calls.each_value(&:hangup)
+        # Hangup all active calls and wait for them to complete
+        @calls.each_value { |call| call.hangup(wait: 2) unless call.ended? }
         @calls.clear
         @connection&.disconnect
       end
