@@ -17,37 +17,42 @@ module Switest2
         parse_headers(raw_data)
       end
 
-      # Common accessors (keys normalized to lowercase)
+      # Common accessors
       def name
-        @headers["event-name"]
+        self["Event-Name"]
       end
 
       def uuid
-        @headers["unique-id"] || @headers["channel-call-uuid"]
+        self["Unique-ID"] || self["Channel-Call-UUID"]
       end
 
       def caller_id
-        @headers["caller-caller-id-number"]
+        self["Caller-Caller-ID-Number"]
       end
 
       def destination
-        @headers["caller-destination-number"]
+        self["Caller-Destination-Number"]
       end
 
       def call_direction
-        @headers["call-direction"]
+        self["Call-Direction"]
       end
 
       def hangup_cause
-        @headers["hangup-cause"]
+        self["Hangup-Cause"]
       end
 
+      # Case-insensitive header lookup
       def [](key)
-        @headers[key.downcase]
+        # Try exact match first (fast path)
+        return @headers[key] if @headers.key?(key)
+        # Fall back to case-insensitive search
+        key_downcase = key.downcase
+        @headers.find { |k, _| k.downcase == key_downcase }&.last
       end
 
       def variable(name)
-        @headers["variable_#{name.downcase}"]
+        self["variable_#{name}"]
       end
 
       private
@@ -61,8 +66,7 @@ module Switest2
           next unless key && value
 
           # ESL uses percent-encoding (%XX) but NOT + for spaces
-          # Normalize keys to lowercase for case-insensitive lookup
-          @headers[key.downcase] = value.gsub(/%([0-9A-Fa-f]{2})/) { [$1.to_i(16)].pack("C") }
+          @headers[key] = value.gsub(/%([0-9A-Fa-f]{2})/) { [$1.to_i(16)].pack("C") }
         end
       end
     end

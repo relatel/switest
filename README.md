@@ -1,140 +1,430 @@
-# Switest (2)
+# Switest2
 
 Switest2 lets you write functional tests for your voice applications,
 using direct ESL (Event Socket Library) communication with FreeSWITCH.
 
-## Example
+## Installation
 
-To test your fancy new PBX and its phone menu, you could write the
-following Switest2 scenario, which dials your number, presses "1"
-and checks that Bob was called as a result of that:
+Add to your Gemfile:
 
 ```ruby
-# test/scenario/pbx_scenario.rb
+gem "switest2"
+```
 
+## Quick Start
+
+```ruby
 require "switest2"
 require "switest2/autorun"
 
-class PbxScenario < Switest2::Scenario
-  def test_dial_and_press_1
-    # First we make an outbound call. The destination is a FreeSWITCH dial string.
-    alice = Agent.dial("sofia/gateway/your-provider/88888888")
+class MyScenario < Switest2::Scenario
+  def test_outbound_call
+    alice = Agent.dial("sofia/gateway/provider/+4512345678")
+    assert alice.wait_for_answer(timeout: 10), "Call should be answered"
 
-    # We set up an agent that will listen for inbound calls.
-    # Parameters are guards that match against call properties.
-    bob = Agent.listen_for_call(to: /^22334455/)
-
-    # Wait until the call has been answered by the PBX.
-    alice.wait_for_answer
-
-    # Send a DTMF
-    alice.send_dtmf("1")
-
-    # Check that the call to Bob has already arrived, or wait
-    # up to five seconds for it to arrive.
-    assert_call(bob)
+    alice.hangup(wait: true)
+    assert alice.ended?, "Call should be ended"
   end
 end
 ```
 
-```
-ruby test/scenario/pbx_scenario.rb
-```
+## Core Concepts
 
-Or you might want to test that you can call Bob, and that Bob can
-transfer the call to Charlie by pressing "#1#":
+### Agents
+
+An **Agent** represents a party in a call. There are two types:
 
 ```ruby
-# test/scenario/transfer_scenario.rb
+# Outbound agent - initiates a call
+alice = Agent.dial("sofia/gateway/provider/+4512345678")
 
-require "switest2"
-require "switest2/autorun"
+# Inbound agent - listens for incoming calls
+bob = Agent.listen_for_call(to: /^1000/)
+```
 
-class TransferScenario < Switest2::Scenario
-  def test_transfer_call
+### Outbound Calls
+
+When you dial, the agent initiates a call and waits for the remote party to answer:
+
+```ruby
+alice = Agent.dial("sofia/gateway/provider/+4512345678")
+
+# Check if call exists
+assert alice.call?, "Agent should have a call"
+
+# Wait for remote party to answer (passive - you're waiting for them)
+assert alice.wait_for_answer(timeout: 10), "Remote should answer"
+
+# Now the call is connected
+assert alice.answered?
+
+# Hangup when done
+alice.hangup(wait: true)
+```
+
+### Inbound Calls
+
+When listening for calls, the agent waits for a matching call to arrive, then you answer it:
+
+```ruby
+bob = Agent.listen_for_call(to: /^1000/)
+
+# No call yet
+refute bob.call?
+
+# ... something triggers an inbound call to 1000 ...
+
+# Wait for the call to arrive
+assert bob.wait_for_call(timeout: 5), "Should receive inbound call"
+
+# Now answer it (active - you're answering)
+bob.answer(wait: true)
+
+# Call is now connected
+assert bob.answered?
+```
+
+### Understanding wait_for_answer vs answer(wait:)
+
+This is a critical distinction:
+
+| Method | Use Case | What Happens |
+|--------|----------|--------------|
+| `wait_for_answer(timeout:)` | **Outbound calls** | Passively waits for the remote party to answer |
+| `answer(wait:)` | **Inbound calls** | Actively answers the call and waits for confirmation |
+
+**Example - Outbound call:**
+```ruby
+alice = Agent.dial("sofia/gateway/provider/+4512345678")
+# Alice is calling someone - wait for THEM to answer
+alice.wait_for_answer(timeout: 10)
+```
+
+**Example - Inbound call:**
+```ruby
+bob = Agent.listen_for_call(to: /^1000/)
+bob.wait_for_call(timeout: 5)
+# Bob received a call - BOB needs to answer it
+bob.answer(wait: true)
+```
+
+### Understanding wait_for_end vs hangup(wait:)
+
+Similar distinction for ending calls:
+
+| Method | Use Case | What Happens |
+|--------|----------|--------------|
+| `wait_for_end(timeout:)` | Waiting for remote to hangup | Passively waits for the call to end |
+| `hangup(wait:)` | You want to hangup | Actively hangs up and waits for confirmation |
+
+**Example - You hangup:**
+```ruby
+alice.hangup(wait: true)  # Hangup and wait for confirmation
+assert alice.ended?
+```
+
+**Example - Wait for remote to hangup:**
+```ruby
+# Remote party hangs up
+assert alice.wait_for_end(timeout: 10), "Remote should hangup"
+```
+
+## Complete API Reference
+
+### Agent Class Methods
+
+```ruby
+# Dial an outbound call
+Agent.dial(destination, from: nil, headers: {})
+
+# Listen for inbound calls matching guards
+Agent.listen_for_call(to: /pattern/, from: /pattern/)
+```
+
+### Agent Instance Methods
+
+#### Actions
+
+```ruby
+agent.answer(wait: false)           # Answer inbound call
+agent.hangup(wait: false)           # Hangup the call
+agent.reject(reason = :decline)     # Reject inbound call (:decline or :busy)
+agent.send_dtmf(digits)             # Send DTMF tones
+agent.receive_dtmf(count:, timeout:) # Receive DTMF digits
+```
+
+#### Wait Methods
+
+```ruby
+agent.wait_for_call(timeout: 5)    # Wait for inbound call to arrive
+agent.wait_for_answer(timeout: 5)  # Wait for call to be answered
+agent.wait_for_end(timeout: 5)     # Wait for call to end
+```
+
+#### State Queries
+
+```ruby
+agent.call?      # Has a call object?
+agent.alive?     # Call exists and not ended?
+agent.active?    # Call is answered and not ended?
+agent.answered?  # Call has been answered?
+agent.ended?     # Call has ended?
+```
+
+#### Timing
+
+```ruby
+agent.start_time   # When call started
+agent.answer_time  # When call was answered
+agent.end_reason   # Why call ended (e.g., "NORMAL_CLEARING")
+```
+
+### Dial Options
+
+```ruby
+Agent.dial(
+  "sofia/gateway/provider/+4512345678",
+  from: "+4587654321",                    # Caller ID (sets both number and name)
+  headers: { "Privacy" => "user;id" }     # Custom SIP headers
+)
+```
+
+**Note:** Headers are automatically prefixed with `sip_h_` to be sent as SIP headers.
+
+### Guards for listen_for_call
+
+Guards filter which inbound calls match:
+
+```ruby
+# Match by destination number (regex)
+Agent.listen_for_call(to: /^1000/)
+
+# Match by caller ID (regex)
+Agent.listen_for_call(from: /^\+45/)
+
+# Match both
+Agent.listen_for_call(to: /^1000/, from: /^\+45/)
+
+# Match exact value
+Agent.listen_for_call(to: "1000")
+```
+
+## Provided Assertions
+
+`Switest2::Scenario` inherits from `Minitest::Test` and provides:
+
+```ruby
+assert_call(agent, timeout: 5)         # Assert agent receives a call
+assert_no_call(agent, timeout: 2)      # Assert agent does NOT receive a call
+assert_hungup(agent, timeout: 5)       # Assert call has ended
+assert_not_hungup(agent, timeout: 2)   # Assert call is still active
+assert_dtmf(agent, "123", timeout: 5)  # Assert agent receives DTMF digits
+```
+
+## Example Scenarios
+
+### Basic Outbound Call
+
+```ruby
+class OutboundTest < Switest2::Scenario
+  def test_dial_and_hangup
+    alice = Agent.dial("loopback/echo/default")
+
+    assert alice.call?, "Should have a call"
+    assert alice.wait_for_answer(timeout: 5), "Should be answered"
+
+    alice.hangup(wait: true)
+    assert alice.ended?, "Should be ended"
+  end
+end
+```
+
+### Inbound Call with Answer
+
+```ruby
+class InboundTest < Switest2::Scenario
+  def test_receive_and_answer
     bob = Agent.listen_for_call(to: /^1000/)
-    alice = Agent.dial("sofia/gateway/your-provider/1000")
 
-    assert_call(bob)
+    # Trigger inbound call somehow (e.g., another agent dials)
+    alice = Agent.dial("loopback/1000/default")
+
+    assert bob.wait_for_call(timeout: 5), "Bob should receive call"
+    assert bob.call.inbound?, "Should be inbound"
+
+    bob.answer(wait: true)
+    assert bob.answered?, "Bob should be answered"
+
+    # Cleanup
+    alice.hangup(wait: true)
+    bob.wait_for_end(timeout: 5)
+  end
+end
+```
+
+### DTMF Testing
+
+```ruby
+class DtmfTest < Switest2::Scenario
+  def test_send_and_receive_dtmf
+    alice = Agent.dial("sofia/gateway/provider/+4512345678")
+    assert alice.wait_for_answer(timeout: 10)
+
+    # Send DTMF
+    alice.send_dtmf("123#")
+
+    # Or receive DTMF from remote
+    digits = alice.receive_dtmf(count: 4, timeout: 5)
+    assert_equal "1234", digits
+
+    alice.hangup(wait: true)
+  end
+end
+```
+
+### Call Transfer
+
+```ruby
+class TransferTest < Switest2::Scenario
+  def test_transfer_with_dtmf
+    bob = Agent.listen_for_call(to: /^1000/)
+    alice = Agent.dial("sofia/gateway/provider/1000")
+
+    assert bob.wait_for_call(timeout: 5)
+    bob.answer(wait: true)
 
     charlie = Agent.listen_for_call(to: /^2000/)
 
-    bob.answer
-    sleep 1
-    bob.send_dtmf("#1#")
+    # Bob transfers by pressing ##2000#
+    bob.send_dtmf("##2000#")
 
-    assert_call(charlie)
-    assert_hungup(bob)
+    assert charlie.wait_for_call(timeout: 5), "Charlie should receive transfer"
+    assert bob.wait_for_end(timeout: 5), "Bob should be disconnected"
 
-    charlie.hangup
+    charlie.answer(wait: true)
+    alice.hangup(wait: true)
+  end
+end
+```
+
+### Reject Inbound Call
+
+```ruby
+class RejectTest < Switest2::Scenario
+  def test_reject_call
+    bob = Agent.listen_for_call(to: /^1000/)
+    alice = Agent.dial("loopback/1000/default")
+
+    assert bob.wait_for_call(timeout: 5)
+
+    bob.reject(:busy)  # or :decline
+
+    assert bob.wait_for_end(timeout: 5)
+    assert alice.wait_for_end(timeout: 5)
   end
 end
 ```
 
 ## Configuration
 
-You need:
+### FreeSWITCH Setup
 
-1. FreeSWITCH instance with `mod_event_socket` enabled (this is the default)
-2. Sofia profile for Switest2
-3. Event Socket configuration in `event_socket.conf.xml`:
+1. Enable `mod_event_socket` (default)
 
-    ```xml
-    <configuration name="event_socket.conf" description="Socket Client">
-      <settings>
-        <param name="nat-map" value="false"/>
-        <param name="listen-ip" value="127.0.0.1"/>
-        <param name="listen-port" value="8021"/>
-        <param name="password" value="ClueCon"/>
-      </settings>
-    </configuration>
-    ```
+2. Configure `event_socket.conf.xml`:
+```xml
+<configuration name="event_socket.conf" description="Socket Client">
+  <settings>
+    <param name="nat-map" value="false"/>
+    <param name="listen-ip" value="0.0.0.0"/>
+    <param name="listen-port" value="8021"/>
+    <param name="password" value="ClueCon"/>
+  </settings>
+</configuration>
+```
 
-4. Dialplan for inbound calls to be parked (so Switest2 can control them):
-
-    ```xml
-    <context name="switest2">
-      <extension name="switest2">
-        <condition>
-          <action application="park"/>
-        </condition>
-      </extension>
-    </context>
-    ```
+3. Add dialplan for parking inbound calls:
+```xml
+<extension name="switest2">
+  <condition>
+    <action application="park"/>
+  </condition>
+</extension>
+```
 
 ### Ruby Configuration
 
-You can configure the ESL connection in your test helper:
-
 ```ruby
 Switest2.configure do |config|
-  config.host = "127.0.0.1"  # FreeSWITCH host
-  config.port = 8021          # ESL port
-  config.password = "ClueCon" # ESL password
-  config.default_timeout = 5  # Default timeout for assertions
+  config.host = "127.0.0.1"     # FreeSWITCH host
+  config.port = 8021            # ESL port
+  config.password = "ClueCon"   # ESL password
+  config.default_timeout = 5    # Default timeout for waits
 end
 ```
 
-## Provided assertions
+### Docker Setup
 
-`Switest2::Scenario` inherits from `Minitest::Test`, so all your regular
-assertions are available. Switest2 provides a few custom assertions:
+Example `compose.yml`:
 
-* `assert_call(agent, timeout: 5)` - Assert agent receives a call
-* `assert_no_call(agent, timeout: 2)` - Assert agent does not receive a call
-* `assert_hungup(agent, timeout: 5)` - Assert agent's call has ended
-* `assert_not_hungup(agent, timeout: 2)` - Assert agent's call is still active
-* `assert_dtmf(agent, dtmf, timeout: 5)` - Assert agent receives specific DTMF digits
+```yaml
+services:
+  freeswitch:
+    image: ghcr.io/patrickbaus/freeswitch-docker
+    ports:
+      - "8021:8021"
+    volumes:
+      - ./freeswitch/event_socket.conf.xml:/etc/freeswitch/autoload_configs/event_socket.conf.xml:ro
+      - ./freeswitch/dialplan.xml:/etc/freeswitch/dialplan/public/00_switest.xml:ro
+    healthcheck:
+      test: ["CMD", "fs_cli", "-x", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  test:
+    image: ruby:3.2
+    working_dir: /app
+    volumes:
+      - .:/app
+    depends_on:
+      freeswitch:
+        condition: service_healthy
+    environment:
+      FREESWITCH_HOST: freeswitch
+      FREESWITCH_PORT: 8021
+      FREESWITCH_PASSWORD: ClueCon
+    command: bundle exec rake test
+```
 
 ## Dependencies
 
 * Ruby >= 3.0
 * concurrent-ruby ~> 1.2
-* minitest >= 5.5, < 6.0
+* minitest >= 5.5, < 7.0
+
+## Migration from Switest (Adhearsion)
+
+Switest2 replaces the Adhearsion/Rayo backend with direct ESL communication.
+The Agent API is compatible:
+
+```ruby
+# Before (Switest with Adhearsion)
+require "switest"
+class MyTest < Switest::Scenario
+
+# After (Switest2 with ESL)
+require "switest2"
+class MyTest < Switest2::Scenario
+```
+
+Key differences:
+- No Adhearsion/Rayo dependency
+- Direct ESL connection (simpler, fewer dependencies)
+- Same Agent API (`dial`, `listen_for_call`, `answer`, `hangup`, etc.)
 
 ## License
 
-```
 The MIT License (MIT)
 
 Copyright (c) 2015 Firmafon ApS, Harry Vangberg <hv@firmafon.dk>
@@ -156,4 +446,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
-```
