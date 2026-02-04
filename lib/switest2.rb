@@ -2,6 +2,7 @@
 
 require_relative "switest2/version"
 require_relative "switest2/configuration"
+require_relative "switest2/case_insensitive_hash"
 require_relative "switest2/events"
 require_relative "switest2/esl/event"
 require_relative "switest2/esl/connection"

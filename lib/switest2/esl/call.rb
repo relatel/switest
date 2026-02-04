@@ -5,21 +5,9 @@ require "concurrent"
 module Switest2
   module ESL
     class Call
-      attr_reader :id, :to, :from, :direction
+      attr_reader :id, :to, :from, :headers, :direction
       attr_reader :start_time, :answer_time, :end_time, :end_reason
       attr_reader :state
-
-      # Case-insensitive header lookup
-      def [](key)
-        return @headers[key] if @headers.key?(key)
-        key_downcase = key.downcase
-        @headers.find { |k, _| k.downcase == key_downcase }&.last
-      end
-
-      # Direct access to headers hash (prefer [] for case-insensitive lookup)
-      def headers
-        @headers
-      end
 
       def initialize(id:, connection:, direction:, to: nil, from: nil, headers: {})
         @id = id
@@ -27,7 +15,7 @@ module Switest2
         @direction = direction  # :inbound or :outbound
         @to = to
         @from = from
-        @headers = headers
+        @headers = Switest2::CaseInsensitiveHash.from(headers)
 
         @state = :offered
         @start_time = Time.now

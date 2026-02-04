@@ -13,46 +13,41 @@ module Switest2
       end
 
       def initialize(raw_data)
-        @headers = {}
+        @headers = Switest2::CaseInsensitiveHash.new
         parse_headers(raw_data)
       end
 
       # Common accessors
       def name
-        self["Event-Name"]
+        @headers["Event-Name"]
       end
 
       def uuid
-        self["Unique-ID"] || self["Channel-Call-UUID"]
+        @headers["Unique-ID"] || @headers["Channel-Call-UUID"]
       end
 
       def caller_id
-        self["Caller-Caller-ID-Number"]
+        @headers["Caller-Caller-ID-Number"]
       end
 
       def destination
-        self["Caller-Destination-Number"]
+        @headers["Caller-Destination-Number"]
       end
 
       def call_direction
-        self["Call-Direction"]
+        @headers["Call-Direction"]
       end
 
       def hangup_cause
-        self["Hangup-Cause"]
+        @headers["Hangup-Cause"]
       end
 
-      # Case-insensitive header lookup
       def [](key)
-        # Try exact match first (fast path)
-        return @headers[key] if @headers.key?(key)
-        # Fall back to case-insensitive search
-        key_downcase = key.downcase
-        @headers.find { |k, _| k.downcase == key_downcase }&.last
+        @headers[key]
       end
 
       def variable(name)
-        self["variable_#{name}"]
+        @headers["variable_#{name}"]
       end
 
       private
