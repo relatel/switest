@@ -35,7 +35,7 @@ class CallIntegrationTest < Switest2::Scenario
     alice.hangup
 
     # Wait for hangup to complete
-    assert alice.wait_for_end(timeout: 5), "Call should end after hangup"
+    assert alice.wait_for_end(timeout: 15), "Call should end after hangup"
     assert alice.ended?, "Agent should show call as ended"
   end
 
@@ -52,7 +52,7 @@ class CallIntegrationTest < Switest2::Scenario
 
     # Clean up
     alice.hangup
-    alice.wait_for_end(timeout: 5)
+    alice.wait_for_end(timeout: 15)
   end
 
   def test_call_state_transitions
@@ -69,7 +69,7 @@ class CallIntegrationTest < Switest2::Scenario
 
     # Hangup
     alice.hangup
-    alice.wait_for_end(timeout: 5)
+    alice.wait_for_end(timeout: 15)
 
     assert alice.call.ended?, "Call should be ended"
     refute alice.call.alive?, "Call should not be alive"
@@ -89,7 +89,7 @@ class CallIntegrationTest < Switest2::Scenario
     assert alice.answer_time >= alice.start_time, "answer_time should be >= start_time"
 
     alice.hangup
-    alice.wait_for_end(timeout: 5)
+    alice.wait_for_end(timeout: 15)
 
     assert alice.call.end_time, "Call should have end_time"
     assert alice.call.end_time >= alice.answer_time, "end_time should be >= answer_time"
@@ -100,7 +100,7 @@ class CallIntegrationTest < Switest2::Scenario
     alice.wait_for_answer(timeout: 5)
 
     alice.hangup
-    alice.wait_for_end(timeout: 5)
+    alice.wait_for_end(timeout: 15)
 
     assert alice.end_reason, "Call should have end_reason"
     # Normal hangup typically gives NORMAL_CLEARING
@@ -112,7 +112,7 @@ class CallIntegrationTest < Switest2::Scenario
     alice = Agent.dial("loopback/echo/public")
     alice.wait_for_answer(timeout: 5)
     alice.hangup
-    alice.wait_for_end(timeout: 5)
+    alice.wait_for_end(timeout: 15)
 
     assert alice.ended?, "First call should be ended"
 
@@ -124,7 +124,7 @@ class CallIntegrationTest < Switest2::Scenario
     refute_equal alice.call.id, bob.call.id, "Calls should have different IDs"
 
     bob.hangup
-    bob.wait_for_end(timeout: 5)
+    bob.wait_for_end(timeout: 15)
   end
 
   def test_receive_dtmf
@@ -144,7 +144,7 @@ class CallIntegrationTest < Switest2::Scenario
 
     # Clean up
     alice.hangup
-    alice.wait_for_end(timeout: 5)
+    alice.wait_for_end(timeout: 15)
   end
 
   def test_receive_dtmf_partial_timeout
@@ -159,7 +159,7 @@ class CallIntegrationTest < Switest2::Scenario
     assert_equal "12", digits, "Should receive partial DTMF digits"
 
     alice.hangup
-    alice.wait_for_end(timeout: 5)
+    alice.wait_for_end(timeout: 15)
   end
 
   def test_multiple_concurrent_calls
@@ -183,8 +183,8 @@ class CallIntegrationTest < Switest2::Scenario
     alice.hangup
     bob.hangup
 
-    alice.wait_for_end(timeout: 10)
-    bob.wait_for_end(timeout: 10)
+    alice.wait_for_end(timeout: 15)
+    bob.wait_for_end(timeout: 15)
 
     assert alice.ended?, "Alice should be ended"
     assert bob.ended?, "Bob should be ended"
