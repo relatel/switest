@@ -8,7 +8,6 @@
 # Run with:
 #   docker compose run --rm test
 
-$LOAD_PATH.unshift("lib")
 
 require "minitest/autorun"
 require "switest2"

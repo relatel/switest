@@ -8,7 +8,6 @@
 # Run with:
 #   ruby -Ilib -Itest test/integration/esl_client_test.rb
 
-$LOAD_PATH.unshift("lib")
 
 require "minitest/autorun"
 require "switest2"
