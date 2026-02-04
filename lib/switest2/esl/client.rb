@@ -142,6 +142,8 @@ module Switest2
         return unless uuid
 
         call = @calls[uuid]
+        # For loopback calls, also check the other leg's UUID
+        call ||= @calls[event["Other-Leg-Unique-ID"]]
         call&.handle_answer
       end
 

@@ -1,0 +1,157 @@
+# frozen_string_literal: true
+
+# Integration tests for actual call scenarios
+#
+# Run with:
+#   docker compose run --rm test
+
+$LOAD_PATH.unshift("lib")
+
+require "minitest/autorun"
+require "switest2"
+
+class CallIntegrationTest < Switest2::Scenario
+  def setup
+    # Configure before parent setup creates the client
+    Switest2.configure do |config|
+      config.host = ENV.fetch("FREESWITCH_HOST", "127.0.0.1")
+      config.port = ENV.fetch("FREESWITCH_PORT", 8021).to_i
+      config.password = ENV.fetch("FREESWITCH_PASSWORD", "ClueCon")
+    end
+    super
+  end
+
+  def test_dial_and_hangup
+    # Dial a loopback call that parks
+    alice = Agent.dial("loopback/park/public")
+
+    assert alice.call?, "Agent should have a call after dial"
+    assert alice.call.outbound?, "Call should be outbound"
+
+    # Give it a moment to set up
+    sleep 0.5
+
+    # Hangup
+    alice.hangup
+
+    # Wait for hangup to complete
+    assert alice.wait_for_end(timeout: 5), "Call should end after hangup"
+    assert alice.ended?, "Agent should show call as ended"
+  end
+
+  def test_dial_and_wait_for_answer
+    # Dial loopback which auto-answers (use public context for our dialplan)
+    alice = Agent.dial("loopback/echo/public")
+
+    assert alice.call?, "Agent should have a call"
+
+    # Wait for the call to be answered
+    answered = alice.wait_for_answer(timeout: 5)
+    assert answered, "Call should be answered"
+    assert alice.answered?, "Agent should show call as answered"
+
+    # Clean up
+    alice.hangup
+    alice.wait_for_end(timeout: 5)
+  end
+
+  def test_call_state_transitions
+    alice = Agent.dial("loopback/echo/public")
+
+    # Initially offered/ringing
+    assert alice.call.alive?, "Call should be alive"
+
+    # Wait for answer
+    alice.wait_for_answer(timeout: 5)
+    assert alice.call.active?, "Call should be active after answer"
+    assert alice.call.answered?, "Call should be answered"
+    refute alice.call.ended?, "Call should not be ended"
+
+    # Hangup
+    alice.hangup
+    alice.wait_for_end(timeout: 5)
+
+    assert alice.call.ended?, "Call should be ended"
+    refute alice.call.alive?, "Call should not be alive"
+    refute alice.call.active?, "Call should not be active"
+    # answered? should still be true (it was answered before ending)
+    assert alice.call.answered?, "Call should still show as was-answered"
+  end
+
+  def test_call_timestamps
+    alice = Agent.dial("loopback/echo/public")
+
+    assert alice.start_time, "Call should have start_time"
+    assert_instance_of Time, alice.start_time
+
+    alice.wait_for_answer(timeout: 5)
+    assert alice.answer_time, "Call should have answer_time after answer"
+    assert alice.answer_time >= alice.start_time, "answer_time should be >= start_time"
+
+    alice.hangup
+    alice.wait_for_end(timeout: 5)
+
+    assert alice.call.end_time, "Call should have end_time"
+    assert alice.call.end_time >= alice.answer_time, "end_time should be >= answer_time"
+  end
+
+  def test_call_end_reason
+    alice = Agent.dial("loopback/echo/public")
+    alice.wait_for_answer(timeout: 5)
+
+    alice.hangup
+    alice.wait_for_end(timeout: 5)
+
+    assert alice.end_reason, "Call should have end_reason"
+    # Normal hangup typically gives NORMAL_CLEARING
+    assert_includes ["NORMAL_CLEARING", "ORIGINATOR_CANCEL"], alice.end_reason
+  end
+
+  def test_multiple_sequential_calls
+    # First call
+    alice = Agent.dial("loopback/echo/public")
+    alice.wait_for_answer(timeout: 5)
+    alice.hangup
+    alice.wait_for_end(timeout: 5)
+
+    assert alice.ended?, "First call should be ended"
+
+    # Second call
+    bob = Agent.dial("loopback/echo/public")
+    bob.wait_for_answer(timeout: 5)
+
+    assert bob.answered?, "Second call should be answered"
+    refute_equal alice.call.id, bob.call.id, "Calls should have different IDs"
+
+    bob.hangup
+    bob.wait_for_end(timeout: 5)
+  end
+
+  def test_multiple_concurrent_calls
+    # Start two calls at once
+    alice = Agent.dial("loopback/echo/public")
+    bob = Agent.dial("loopback/echo/public")
+
+    # Both should exist
+    assert alice.call?, "Alice should have a call"
+    assert bob.call?, "Bob should have a call"
+    refute_equal alice.call.id, bob.call.id, "Calls should have different IDs"
+
+    # Wait for both to answer
+    alice.wait_for_answer(timeout: 5)
+    bob.wait_for_answer(timeout: 5)
+
+    assert alice.answered?, "Alice should be answered"
+    assert bob.answered?, "Bob should be answered"
+
+    # Hangup both
+    alice.hangup
+    bob.hangup
+
+    alice.wait_for_end(timeout: 10)
+    bob.wait_for_end(timeout: 10)
+
+    assert alice.ended?, "Alice should be ended"
+    assert bob.ended?, "Bob should be ended"
+  end
+end

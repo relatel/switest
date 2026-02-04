@@ -1,5 +1,22 @@
 <include>
-  <extension name="switest2">
+  <!-- Park calls to "park" destination -->
+  <extension name="switest2-park">
+    <condition field="destination_number" expression="^park$">
+      <action application="set" data="hangup_after_bridge=true"/>
+      <action application="park"/>
+    </condition>
+  </extension>
+
+  <!-- Answer and echo for "echo" destination -->
+  <extension name="switest2-echo">
+    <condition field="destination_number" expression="^echo$">
+      <action application="answer"/>
+      <action application="echo"/>
+    </condition>
+  </extension>
+
+  <!-- Default: park anything else -->
+  <extension name="switest2-default">
     <condition field="destination_number" expression="^(.*)$">
       <action application="set" data="hangup_after_bridge=true"/>
       <action application="park"/>
