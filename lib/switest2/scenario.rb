@@ -17,7 +17,9 @@ module Switest2
         @events.emit(:offer, {
           to: call.to,
           from: call.from,
-          call: call
+          call: call,
+          headers: call.headers,
+          profile: call.headers["variable_sofia_profile_name"]
         })
       end
 
