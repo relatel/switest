@@ -51,7 +51,9 @@ jobs:
         run: |
           docker cp docker/freeswitch/event_socket.conf.xml ${{ job.services.freeswitch.id }}:/etc/freeswitch/autoload_configs/event_socket.conf.xml
           docker cp docker/freeswitch/acl.conf.xml ${{ job.services.freeswitch.id }}:/etc/freeswitch/autoload_configs/acl.conf.xml
+          docker cp docker/freeswitch/dialplan.xml ${{ job.services.freeswitch.id }}:/etc/freeswitch/dialplan/public/00_switest2.xml
           docker exec ${{ job.services.freeswitch.id }} fs_cli -x "reloadxml"
+          docker exec ${{ job.services.freeswitch.id }} fs_cli -x "reloadacl"
           docker exec ${{ job.services.freeswitch.id }} fs_cli -x "reload mod_event_socket"
           sleep 2
 
