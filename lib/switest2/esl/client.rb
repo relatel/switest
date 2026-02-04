@@ -42,7 +42,10 @@ module Switest2
 
         # Build originate string
         vars = ["origination_uuid=#{uuid}"]
-        vars << "origination_caller_id_number=#{from}" if from
+        if from
+          vars << "origination_caller_id_number=#{from}"
+          vars << "origination_caller_id_name=#{from}"
+        end
         headers.each { |k, v| vars << "#{k}=#{v}" }
 
         var_string = "{#{vars.join(",")}}"
@@ -91,19 +94,15 @@ module Switest2
             next unless event
 
             handle_event(event)
-          rescue Switest2::ConnectionError => e
+          rescue Switest2::ConnectionError
             break unless @running
-          rescue => e
-            # Log and continue
-            $stderr.puts "Event reader error: #{e.message}" if Switest2.configuration.log_level == :debug
+          rescue
+            # Ignore errors in event reader
           end
         end
       end
 
       def handle_event(event)
-        if ENV["DEBUG_ESL"]
-          $stderr.puts "[ESL] #{event.name} uuid=#{event.uuid} other=#{event["Other-Leg-Unique-ID"]} dir=#{event.call_direction}"
-        end
         case event.name
         when "CHANNEL_CREATE"
           handle_channel_create(event)
@@ -149,9 +148,6 @@ module Switest2
         other_uuid = event["Other-Leg-Unique-ID"]
         # For loopback calls, also check the other leg's UUID
         call ||= @calls[other_uuid] if other_uuid
-        if ENV["DEBUG_ESL"]
-          $stderr.puts "[ESL] ANSWER for #{uuid}, found=#{!call.nil?}, other=#{other_uuid}, tracked=#{@calls.keys.inspect}"
-        end
         call&.handle_answer
       end
 
@@ -163,16 +159,10 @@ module Switest2
         other_uuid = event["Other-Leg-Unique-ID"]
         # For loopback calls, also check the other leg's UUID
         call ||= @calls[other_uuid] if other_uuid
-        if ENV["DEBUG_ESL"]
-          $stderr.puts "[ESL] HANGUP_COMPLETE for #{uuid}, found=#{!call.nil?}, other=#{other_uuid}, tracked=#{@calls.keys.inspect}"
-        end
         return unless call
 
         cause = event.hangup_cause
         call.handle_hangup(cause)
-
-        # Keep call in map for a bit so assertions can check it
-        # It will be cleaned up on next test
       end
 
       def handle_dtmf(event)

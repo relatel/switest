@@ -178,9 +178,8 @@ class CallIntegrationTest < Switest2::Scenario
     assert bob.call?, "Bob should have a call"
     assert bob.call.inbound?, "Bob's call should be inbound"
 
-    # Bob answers
-    bob.answer
-    sleep 0.5
+    # Bob answers (wait for answer to complete)
+    bob.answer(wait: true)
 
     # Both should now be connected
     assert alice.wait_for_answer(timeout: 5), "Alice should see answer"

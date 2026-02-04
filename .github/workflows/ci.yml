@@ -58,7 +58,6 @@ jobs:
           FREESWITCH_HOST: 127.0.0.1
           FREESWITCH_PORT: 8021
           FREESWITCH_PASSWORD: ClueCon
-          DEBUG_ESL: "1"
         run: bundle exec rake integration
 
       - name: Show FreeSWITCH logs on failure

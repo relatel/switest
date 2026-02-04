@@ -2,13 +2,12 @@
 
 module Switest2
   class Configuration
-    attr_accessor :host, :port, :password, :log_level, :default_timeout
+    attr_accessor :host, :port, :password, :default_timeout
 
     def initialize
       @host = "127.0.0.1"
       @port = 8021
       @password = "ClueCon"
-      @log_level = :error
       @default_timeout = 5
     end
 
@@ -17,7 +16,6 @@ module Switest2
         host: @host,
         port: @port,
         password: @password,
-        log_level: @log_level,
         default_timeout: @default_timeout
       }
     end
