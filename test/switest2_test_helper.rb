@@ -3,7 +3,7 @@
 $LOAD_PATH.unshift("lib")
 
 require "bundler/setup" if defined?(Bundler)
-require "minitest/autorun"
+require "minitest"
 require "timeout"
 require "switest2"
 

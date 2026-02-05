@@ -2,22 +2,18 @@
 
 # Integration tests for ESL connection against real FreeSWITCH
 #
-# Requires FreeSWITCH running:
-#   docker compose up -d
-#
 # Run with:
-#   ruby -Ilib -Itest test/integration/esl_connection_test.rb
+#   rake integration
 
-
-require "minitest/autorun"
-require "switest2"
+require_relative "../integration_test_helper"
 
 class ESLConnectionIntegrationTest < Minitest::Test
   def setup
+    config = Switest2.configuration
     @connection = Switest2::ESL::Connection.new(
-      host: ENV.fetch("FREESWITCH_HOST", "127.0.0.1"),
-      port: ENV.fetch("FREESWITCH_PORT", 8021).to_i,
-      password: ENV.fetch("FREESWITCH_PASSWORD", "ClueCon")
+      host: config.host,
+      port: config.port,
+      password: config.password
     )
   end
 
@@ -73,9 +69,10 @@ class ESLConnectionIntegrationTest < Minitest::Test
   end
 
   def test_authentication_failure
+    config = Switest2.configuration
     bad_connection = Switest2::ESL::Connection.new(
-      host: ENV.fetch("FREESWITCH_HOST", "127.0.0.1"),
-      port: ENV.fetch("FREESWITCH_PORT", 8021).to_i,
+      host: config.host,
+      port: config.port,
       password: "wrong_password"
     )
 

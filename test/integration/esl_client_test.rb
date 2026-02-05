@@ -2,30 +2,18 @@
 
 # Integration tests for ESL Client against real FreeSWITCH
 #
-# Requires FreeSWITCH running:
-#   docker compose up -d
-#
 # Run with:
-#   ruby -Ilib -Itest test/integration/esl_client_test.rb
+#   rake integration
 
-
-require "minitest/autorun"
-require "switest2"
+require_relative "../integration_test_helper"
 
 class ESLClientIntegrationTest < Minitest::Test
   def setup
-    Switest2.configure do |config|
-      config.host = ENV.fetch("FREESWITCH_HOST", "127.0.0.1")
-      config.port = ENV.fetch("FREESWITCH_PORT", 8021).to_i
-      config.password = ENV.fetch("FREESWITCH_PASSWORD", "ClueCon")
-    end
-
     @client = Switest2::ESL::Client.new
   end
 
   def teardown
     @client&.stop
-    Switest2.reset_configuration!
   end
 
   def test_start_and_stop

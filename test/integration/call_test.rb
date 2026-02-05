@@ -3,22 +3,11 @@
 # Integration tests for actual call scenarios
 #
 # Run with:
-#   docker compose run --rm test
+#   rake integration
 
-
-require "minitest/autorun"
-require "switest2"
+require_relative "../integration_test_helper"
 
 class CallIntegrationTest < Switest2::Scenario
-  def setup
-    # Configure before parent setup creates the client
-    Switest2.configure do |config|
-      config.host = ENV.fetch("FREESWITCH_HOST", "127.0.0.1")
-      config.port = ENV.fetch("FREESWITCH_PORT", 8021).to_i
-      config.password = ENV.fetch("FREESWITCH_PASSWORD", "ClueCon")
-    end
-    super
-  end
 
   def test_dial_and_hangup
     # Dial a loopback call that parks
