@@ -86,11 +86,11 @@ module Switest2
         hangup(cause)
       end
 
-      def play_audio(url, wait: false)
+      def play_audio(url, wait: true)
         sendmsg("execute", "playback", url, event_lock: wait)
       end
 
-      def send_dtmf(digits, wait: false)
+      def send_dtmf(digits, wait: true)
         # Play DTMF tones (inband)
         tones = digits.chars.map { |d| dtmf_tone(d) }.join(";")
         sendmsg("execute", "playback", "tone_stream://#{tones}", event_lock: wait)

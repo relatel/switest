@@ -25,6 +25,14 @@
     </condition>
   </extension>
 
+  <!-- Inbound test with inband DTMF detection enabled -->
+  <extension name="switest2-dtmf-detect">
+    <condition field="destination_number" expression="^dtmf_wait_test$">
+      <action application="start_dtmf"/>
+      <action application="park"/>
+    </condition>
+  </extension>
+
   <!-- Inbound test destinations - park for agent control -->
   <extension name="switest2-inbound-test">
     <condition field="destination_number" expression="^(inbound_test|reject_test)$">
