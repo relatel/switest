@@ -207,4 +207,57 @@ class Switest2::ESL::CallTest < Minitest::Test
     answer_commands = @connection.commands_sent.select { |c| c.include?("answer") }
     assert_equal 1, answer_commands.length
   end
+
+  def test_hangup_sends_hangup_cause_header
+    call = Switest2::ESL::Call.new(
+      id: "test-uuid",
+      connection: @connection,
+      direction: :outbound
+    )
+
+    call.hangup("USER_BUSY")
+
+    command = @connection.commands_sent.last
+    assert_match(/call-command: hangup/, command)
+    assert_match(/hangup-cause: USER_BUSY/, command)
+  end
+
+  def test_hangup_defaults_to_normal_clearing
+    call = Switest2::ESL::Call.new(
+      id: "test-uuid",
+      connection: @connection,
+      direction: :outbound
+    )
+
+    call.hangup
+
+    command = @connection.commands_sent.last
+    assert_match(/hangup-cause: NORMAL_CLEARING/, command)
+  end
+
+  def test_reject_busy_uses_user_busy_cause
+    call = Switest2::ESL::Call.new(
+      id: "test-uuid",
+      connection: @connection,
+      direction: :inbound
+    )
+
+    call.reject(:busy)
+
+    command = @connection.commands_sent.last
+    assert_match(/hangup-cause: USER_BUSY/, command)
+  end
+
+  def test_reject_decline_uses_call_rejected_cause
+    call = Switest2::ESL::Call.new(
+      id: "test-uuid",
+      connection: @connection,
+      direction: :inbound
+    )
+
+    call.reject(:decline)
+
+    command = @connection.commands_sent.last
+    assert_match(/hangup-cause: CALL_REJECTED/, command)
+  end
 end
