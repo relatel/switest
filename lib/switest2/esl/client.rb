@@ -171,8 +171,13 @@ module Switest2
         return unless uuid
 
         call = @calls[uuid]
+        other_uuid = event["Other-Leg-Unique-ID"]
+        # For loopback calls, also check the other leg's UUID
+        call ||= @calls[other_uuid] if other_uuid
+        return unless call
+
         digit = event["DTMF-Digit"]
-        call&.handle_dtmf(digit) if digit
+        call.handle_dtmf(digit) if digit
       end
 
       def fire_offer(call)

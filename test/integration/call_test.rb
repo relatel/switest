@@ -254,4 +254,55 @@ class CallIntegrationTest < Switest2::Scenario
     alice.hangup(wait: 5)
     assert alice.ended?, "Call should be ended"
   end
+
+  def test_concurrent_dtmf_calls_receive_correct_digits
+    # This tests that DTMF events are correctly routed to the right call
+    # when multiple loopback calls are active. Each call should only receive
+    # its own DTMF digits, not digits from other calls.
+    #
+    # This verifies the Other-Leg-Unique-ID fix for loopback call DTMF routing.
+
+    # Start two calls that will send different DTMF patterns
+    alice = Agent.dial("loopback/dtmf_111/public")  # Will send "111"
+    bob = Agent.dial("loopback/dtmf_222/public")    # Will send "222"
+
+    # Both calls should exist with different IDs
+    assert alice.call?, "Alice should have a call"
+    assert bob.call?, "Bob should have a call"
+    refute_equal alice.call.id, bob.call.id, "Calls should have different IDs"
+
+    # Wait for both to answer
+    assert alice.wait_for_answer(timeout: 5), "Alice should be answered"
+    assert bob.wait_for_answer(timeout: 5), "Bob should be answered"
+
+    # Each call should receive its own DTMF digits
+    alice_digits = alice.call.receive_dtmf(count: 3, timeout: 5)
+    bob_digits = bob.call.receive_dtmf(count: 3, timeout: 5)
+
+    assert_equal "111", alice_digits, "Alice should receive her own DTMF digits (111)"
+    assert_equal "222", bob_digits, "Bob should receive his own DTMF digits (222)"
+
+    # Cleanup
+    alice.hangup(wait: 5)
+    bob.hangup(wait: 5)
+  end
+
+  def test_sequential_dtmf_calls_are_isolated
+    # Test that DTMF digits from a previous call don't leak to subsequent calls.
+    # This verifies proper call isolation.
+
+    # First call: receive DTMF 123
+    alice = Agent.dial("loopback/dtmf_123/public")
+    alice.wait_for_answer(timeout: 5)
+    digits1 = alice.call.receive_dtmf(count: 3, timeout: 5)
+    assert_equal "123", digits1, "First call should receive 123"
+    alice.hangup(wait: 5)
+
+    # Second call: receive DTMF 456
+    bob = Agent.dial("loopback/dtmf_456/public")
+    bob.wait_for_answer(timeout: 5)
+    digits2 = bob.call.receive_dtmf(count: 3, timeout: 5)
+    assert_equal "456", digits2, "Second call should receive 456 (not 123 from previous call)"
+    bob.hangup(wait: 5)
+  end
 end
