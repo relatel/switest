@@ -23,11 +23,13 @@ module Switest2
         @end_time = nil
         @end_reason = nil
 
+        @bridged = false
         @dtmf_buffer = Queue.new
-        @callbacks = { answer: [], end: [] }
+        @callbacks = { answer: [], bridge: [], end: [] }
         @mutex = Mutex.new
 
         @answered_latch = Concurrent::CountDownLatch.new(1)
+        @bridged_latch = Concurrent::CountDownLatch.new(1)
         @ended_latch = Concurrent::CountDownLatch.new(1)
       end
 
@@ -46,6 +48,10 @@ module Switest2
 
       def ended?
         @state == :ended
+      end
+
+      def bridged?
+        @bridged
       end
 
       def inbound?
@@ -120,6 +126,10 @@ module Switest2
         @mutex.synchronize { @callbacks[:answer] << block }
       end
 
+      def on_bridge(&block)
+        @mutex.synchronize { @callbacks[:bridge] << block }
+      end
+
       def on_end(&block)
         @mutex.synchronize { @callbacks[:end] << block }
       end
@@ -128,6 +138,11 @@ module Switest2
       def wait_for_answer(timeout: 5)
         @answered_latch.wait(timeout)
         answered?
+      end
+
+      def wait_for_bridge(timeout: 5)
+        @bridged_latch.wait(timeout)
+        bridged?
       end
 
       def wait_for_end(timeout: 5)
@@ -146,6 +161,15 @@ module Switest2
         fire_callbacks(:answer)
       end
 
+      def handle_bridge
+        @mutex.synchronize do
+          return if @state == :ended
+          @bridged = true
+        end
+        @bridged_latch.count_down
+        fire_callbacks(:bridge)
+      end
+
       def handle_hangup(cause, headers = {})
         @mutex.synchronize do
           return if @state == :ended
@@ -155,6 +179,7 @@ module Switest2
           @headers.merge!(headers)
         end
         @answered_latch.count_down  # Release any waiting threads
+        @bridged_latch.count_down
         @ended_latch.count_down
         fire_callbacks(:end)
       end

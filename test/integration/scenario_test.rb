@@ -29,8 +29,8 @@ class ScenarioIntegrationTest < Switest2::Scenario
     assert agent.call?, "Agent should have a call after dial"
     assert_instance_of Switest2::ESL::Call, agent.call
 
-    # Wait a moment for the call to be set up
-    sleep 0.5
+    # Wait for the loopback legs to bridge
+    agent.wait_for_bridge(timeout: 5)
 
     # Clean up - wait for hangup to complete
     agent.hangup(wait: 5)

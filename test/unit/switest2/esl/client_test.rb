@@ -177,6 +177,36 @@ class Switest2::ESL::ClientTest < Minitest::Test
     refute call_b.answered?, "Call B should NOT be answered"
   end
 
+  def test_bridge_event_sets_call_bridged
+    @client.start
+
+    call = @client.dial(to: "sofia/gateway/test/123")
+
+    @connection.simulate_event(<<~EVENT)
+      Event-Name: CHANNEL_BRIDGE
+      Unique-ID: #{call.id}
+      Other-Leg-Unique-ID: other-leg-uuid
+    EVENT
+
+    assert call.bridged?, "Call should be bridged after CHANNEL_BRIDGE event"
+  end
+
+  def test_bridge_events_are_isolated_by_uuid
+    @client.start
+
+    call_a = @client.dial(to: "sofia/gateway/test/111")
+    call_b = @client.dial(to: "sofia/gateway/test/222")
+
+    # Only bridge call_a
+    @connection.simulate_event(<<~EVENT)
+      Event-Name: CHANNEL_BRIDGE
+      Unique-ID: #{call_a.id}
+    EVENT
+
+    assert call_a.bridged?, "Call A should be bridged"
+    refute call_b.bridged?, "Call B should NOT be bridged"
+  end
+
   def test_hangup_events_are_isolated_by_uuid
     @client.start
 

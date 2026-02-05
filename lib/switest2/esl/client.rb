@@ -112,6 +112,8 @@ module Switest2
           handle_channel_create(event)
         when "CHANNEL_ANSWER"
           handle_channel_answer(event)
+        when "CHANNEL_BRIDGE"
+          handle_channel_bridge(event)
         when "CHANNEL_HANGUP_COMPLETE"
           handle_channel_hangup(event)
         when "DTMF"
@@ -153,6 +155,16 @@ module Switest2
         # For loopback calls, also check the other leg's UUID
         call ||= @calls[other_uuid] if other_uuid
         call&.handle_answer
+      end
+
+      def handle_channel_bridge(event)
+        uuid = event.uuid
+        return unless uuid
+
+        call = @calls[uuid]
+        other_uuid = event["Other-Leg-Unique-ID"]
+        call ||= @calls[other_uuid] if other_uuid
+        call&.handle_bridge
       end
 
       def handle_channel_hangup(event)

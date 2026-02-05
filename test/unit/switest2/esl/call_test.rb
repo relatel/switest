@@ -156,6 +156,95 @@ class Switest2::ESL::CallTest < Minitest::Test
     assert result
   end
 
+  def test_handle_bridge_sets_bridged
+    call = Switest2::ESL::Call.new(
+      id: "test-uuid",
+      connection: @connection,
+      direction: :outbound
+    )
+
+    refute call.bridged?
+    call.handle_bridge
+    assert call.bridged?
+  end
+
+  def test_handle_bridge_ignored_after_hangup
+    call = Switest2::ESL::Call.new(
+      id: "test-uuid",
+      connection: @connection,
+      direction: :outbound
+    )
+
+    call.handle_hangup("NORMAL_CLEARING")
+    call.handle_bridge
+
+    # bridged? returns true because hangup releases the bridged latch,
+    # but the handle_bridge early-returns without setting @bridged via mutex
+    # Actually let's check: hangup counts down the latch but doesn't set @bridged
+    # handle_bridge returns early because state == :ended
+    # So bridged? should be false (the flag), but wait_for_bridge would return
+    # because the latch was released by hangup
+    refute call.bridged?, "Should not be bridged after hangup"
+  end
+
+  def test_on_bridge_callback
+    call = Switest2::ESL::Call.new(
+      id: "test-uuid",
+      connection: @connection,
+      direction: :outbound
+    )
+
+    callback_called = false
+    call.on_bridge { callback_called = true }
+    call.handle_bridge
+
+    assert callback_called
+  end
+
+  def test_wait_for_bridge_returns_true_on_bridge
+    call = Switest2::ESL::Call.new(
+      id: "test-uuid",
+      connection: @connection,
+      direction: :outbound
+    )
+
+    Thread.new {
+      sleep 0.2
+      call.handle_bridge
+    }
+
+    result = call.wait_for_bridge(timeout: 1)
+    assert result
+  end
+
+  def test_wait_for_bridge_returns_false_on_timeout
+    call = Switest2::ESL::Call.new(
+      id: "test-uuid",
+      connection: @connection,
+      direction: :outbound
+    )
+
+    result = call.wait_for_bridge(timeout: 0.2)
+    refute result
+  end
+
+  def test_wait_for_bridge_unblocks_on_hangup
+    call = Switest2::ESL::Call.new(
+      id: "test-uuid",
+      connection: @connection,
+      direction: :outbound
+    )
+
+    Thread.new {
+      sleep 0.2
+      call.handle_hangup("NORMAL_CLEARING")
+    }
+
+    # Should unblock even though bridge never happened
+    result = call.wait_for_bridge(timeout: 1)
+    refute result, "Should return false since call ended without bridging"
+  end
+
   def test_dtmf_buffering
     call = Switest2::ESL::Call.new(
       id: "test-uuid",

@@ -110,8 +110,8 @@ module Switest2
 
       def subscribe_events
         events = %w[
-          CHANNEL_CREATE CHANNEL_ANSWER CHANNEL_HANGUP CHANNEL_HANGUP_COMPLETE
-          CHANNEL_EXECUTE_COMPLETE DTMF CHANNEL_STATE
+          CHANNEL_CREATE CHANNEL_ANSWER CHANNEL_BRIDGE CHANNEL_HANGUP
+          CHANNEL_HANGUP_COMPLETE CHANNEL_EXECUTE_COMPLETE DTMF CHANNEL_STATE
         ].join(" ")
 
         @socket.write("event plain #{events}\n\n")

@@ -16,8 +16,8 @@ class CallIntegrationTest < Switest2::Scenario
     assert alice.call?, "Agent should have a call after dial"
     assert alice.call.outbound?, "Call should be outbound"
 
-    # Give it a moment to set up
-    sleep 0.5
+    # Wait for the loopback legs to bridge
+    alice.wait_for_bridge(timeout: 5)
 
     # Hangup
     alice.hangup
@@ -363,8 +363,8 @@ class CallIntegrationTest < Switest2::Scenario
     alice = Agent.dial("loopback/echo/public")
     assert alice.wait_for_answer(timeout: 5), "Alice should be answered"
 
-    # Let the call run briefly so we get some duration
-    sleep 0.5
+    # Wait for bridge so we get some duration
+    alice.wait_for_bridge(timeout: 5)
 
     alice.hangup(wait: 5)
     assert alice.ended?, "Alice should be ended"

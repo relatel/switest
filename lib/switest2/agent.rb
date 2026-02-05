@@ -86,6 +86,11 @@ module Switest2
       @call.wait_for_answer(timeout: timeout)
     end
 
+    def wait_for_bridge(timeout: 5)
+      raise "No call to wait for" unless @call
+      @call.wait_for_bridge(timeout: timeout)
+    end
+
     def wait_for_end(timeout: 5)
       raise "No call to wait for" unless @call
       @call.wait_for_end(timeout: timeout)
