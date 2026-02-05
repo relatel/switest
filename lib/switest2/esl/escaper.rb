@@ -107,6 +107,8 @@ module Switest2
       #   # => "{origination_uuid=abc-123,origination_caller_id_name='John Doe',sip_h_X-Custom=value\\,with\\,commas}"
       #
       def build_var_string(vars = {}, sip_header_vars = {})
+        vars ||= {}
+        sip_header_vars ||= {}
         parts = []
 
         vars.each do |key, value|

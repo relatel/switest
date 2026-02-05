@@ -79,6 +79,15 @@ class Switest2::ESL::EscaperTest < Minitest::Test
     assert_equal "", Escaper.build_var_string({}, {})
   end
 
+  def test_build_var_string_with_nil_vars
+    assert_equal "", Escaper.build_var_string(nil, nil)
+  end
+
+  def test_build_var_string_with_nil_sip_headers
+    result = Escaper.build_var_string({ foo: "bar" }, nil)
+    assert_equal "{foo=bar}", result
+  end
+
   def test_build_var_string_single_var
     result = Escaper.build_var_string({ foo: "bar" }, {})
     assert_equal "{foo=bar}", result
