@@ -134,8 +134,15 @@ module Switest2
             break unless @running && @socket && !@socket.closed?
             next unless ready
 
-            # Read and dispatch event
+            # Read and dispatch event (skip orphaned command replies)
             response = read_response
+            content_type = response[:headers]["Content-Type"]
+            next if content_type == "command/reply" || content_type == "api/response"
+
+            if content_type == "text/disconnect-notice"
+              break
+            end
+
             dispatch_event(response)
           rescue IOError, Errno::EBADF, Errno::ECONNRESET
             # Socket closed
@@ -154,7 +161,7 @@ module Switest2
 
           begin
             @socket.write("#{item[:cmd]}\n\n")
-            response = read_response
+            response = read_command_response
             item[:promise].set(response)
           rescue => e
             item[:promise].fail(e)
@@ -165,6 +172,26 @@ module Switest2
       def dispatch_event(response)
         handlers = @mutex.synchronize { @event_handlers.dup }
         handlers.each { |h| h.call(response) }
+      end
+
+      # Read responses until we get a command reply, dispatching any
+      # interleaved events that arrive before the reply.
+      def read_command_response
+        loop do
+          response = read_response
+          content_type = response[:headers]["Content-Type"]
+
+          case content_type
+          when "command/reply", "api/response"
+            return response
+          when "text/event-plain"
+            dispatch_event(response)
+          when "text/disconnect-notice"
+            raise ConnectionError, "Disconnected"
+          else
+            return response
+          end
+        end
       end
 
       def read_response
