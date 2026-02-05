@@ -294,4 +294,45 @@ class CallIntegrationTest < Switest2::Scenario
     assert_equal "456", digits2, "Second call should receive 456 (not 123 from previous call)"
     bob.hangup(wait: 5)
   end
+
+  def test_hangup_all_ends_multiple_calls
+    # Start multiple concurrent calls
+    alice = Agent.dial("loopback/echo/public")
+    bob = Agent.dial("loopback/echo/public")
+    charlie = Agent.dial("loopback/echo/public")
+
+    # Wait for all to answer
+    assert alice.wait_for_answer(timeout: 5), "Alice should be answered"
+    assert bob.wait_for_answer(timeout: 5), "Bob should be answered"
+    assert charlie.wait_for_answer(timeout: 5), "Charlie should be answered"
+
+    # All calls should be active
+    assert alice.active?, "Alice should be active"
+    assert bob.active?, "Bob should be active"
+    assert charlie.active?, "Charlie should be active"
+
+    # Hangup all calls at once
+    hangup_all
+
+    # All calls should be ended
+    assert alice.ended?, "Alice should be ended after hangup_all"
+    assert bob.ended?, "Bob should be ended after hangup_all"
+    assert charlie.ended?, "Charlie should be ended after hangup_all"
+
+    # All should have NORMAL_CLEARING as the cause (not hupall's cause)
+    assert_equal "NORMAL_CLEARING", alice.end_reason, "Alice should have NORMAL_CLEARING"
+    assert_equal "NORMAL_CLEARING", bob.end_reason, "Bob should have NORMAL_CLEARING"
+    assert_equal "NORMAL_CLEARING", charlie.end_reason, "Charlie should have NORMAL_CLEARING"
+  end
+
+  def test_hangup_all_with_custom_cause
+    alice = Agent.dial("loopback/echo/public")
+    assert alice.wait_for_answer(timeout: 5), "Alice should be answered"
+
+    # Hangup with custom cause
+    hangup_all(cause: "USER_BUSY")
+
+    assert alice.ended?, "Alice should be ended"
+    assert_equal "USER_BUSY", alice.end_reason, "Should use custom hangup cause"
+  end
 end
