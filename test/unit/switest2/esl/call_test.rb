@@ -55,6 +55,22 @@ class Switest2::ESL::CallTest < Minitest::Test
     assert_instance_of Time, call.end_time
   end
 
+  def test_handle_hangup_merges_headers
+    call = Switest2::ESL::Call.new(
+      id: "test-uuid",
+      connection: @connection,
+      direction: :inbound
+    )
+
+    call.handle_hangup("NORMAL_CLEARING", {
+      "variable_billsec" => "120",
+      "variable_duration" => "125"
+    })
+
+    assert_equal "120", call.headers["variable_billsec"]
+    assert_equal "125", call.headers["variable_duration"]
+  end
+
   def test_answered_true_after_hangup_if_was_answered
     call = Switest2::ESL::Call.new(
       id: "test-uuid",

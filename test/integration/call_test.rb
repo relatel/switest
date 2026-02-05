@@ -358,4 +358,19 @@ class CallIntegrationTest < Switest2::Scenario
 
     bob.wait_for_end(timeout: 5)
   end
+
+  def test_hangup_headers_are_available_after_call_ends
+    alice = Agent.dial("loopback/echo/public")
+    assert alice.wait_for_answer(timeout: 5), "Alice should be answered"
+
+    # Let the call run briefly so we get some duration
+    sleep 0.5
+
+    alice.hangup(wait: 5)
+    assert alice.ended?, "Alice should be ended"
+
+    # Headers from CHANNEL_HANGUP_COMPLETE should be merged
+    assert alice.call.headers["Hangup-Cause"], "Should have Hangup-Cause header"
+    assert_equal "NORMAL_CLEARING", alice.call.headers["Hangup-Cause"]
+  end
 end

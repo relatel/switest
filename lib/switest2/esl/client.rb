@@ -32,8 +32,7 @@ module Switest2
         hangup_all
         @connection&.disconnect
 
-        # Mark any remaining calls as ended locally
-        @calls.each_value { |call| call.handle_hangup("SWITCH_SHUTDOWN") unless call.ended? }
+        # Any remaining calls are orphaned - just clear them
         @calls.clear
       end
 
@@ -166,8 +165,7 @@ module Switest2
         call ||= @calls[other_uuid] if other_uuid
         return unless call
 
-        cause = event.hangup_cause
-        call.handle_hangup(cause)
+        call.handle_hangup(event.hangup_cause, event.headers)
       end
 
       def handle_dtmf(event)

@@ -146,12 +146,13 @@ module Switest2
         fire_callbacks(:answer)
       end
 
-      def handle_hangup(cause)
+      def handle_hangup(cause, headers = {})
         @mutex.synchronize do
           return if @state == :ended
           @state = :ended
           @end_time = Time.now
           @end_reason = cause
+          @headers.merge!(headers)
         end
         @answered_latch.count_down  # Release any waiting threads
         @ended_latch.count_down
