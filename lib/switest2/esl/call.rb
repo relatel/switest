@@ -67,7 +67,10 @@ module Switest2
 
       def hangup(cause = "NORMAL_CLEARING", wait: false)
         return if ended?
-        sendmsg("hangup", nil, cause)
+        msg = +"sendmsg #{@id}\n"
+        msg << "call-command: hangup\n"
+        msg << "hangup-cause: #{cause}"
+        @connection.send_command(msg)
         return unless wait
         timeout = wait == true ? 5 : wait
         wait_for_end(timeout: timeout)
