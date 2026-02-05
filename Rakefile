@@ -1,26 +1,23 @@
 #!/usr/bin/env rake
+# frozen_string_literal: true
 
-require "rake/testtask"
+require "minitest/test_task"
 
-Rake::TestTask.new(:test) do |t|
+Minitest::TestTask.create(:test) do |t|
   t.libs << "lib" << "test"
-  t.test_files = Dir.glob("test/unit/switest2/**/*_test.rb")
-  t.verbose = true
+  t.test_globs = ["test/unit/switest2/**/*_test.rb"]
   t.warning = false
 end
 
-Rake::TestTask.new(:integration) do |t|
+Minitest::TestTask.create(:integration) do |t|
   t.libs << "lib" << "test"
-  t.test_files = Dir.glob("test/integration/**/*_test.rb")
-  t.verbose = true
+  t.test_globs = ["test/integration/**/*_test.rb"]
   t.warning = false
 end
 
-Rake::TestTask.new(:all) do |t|
+Minitest::TestTask.create(:all) do |t|
   t.libs << "lib" << "test"
-  t.test_files = Dir.glob("test/unit/switest2/**/*_test.rb") +
-                 Dir.glob("test/integration/**/*_test.rb")
-  t.verbose = true
+  t.test_globs = ["test/unit/switest2/**/*_test.rb", "test/integration/**/*_test.rb"]
   t.warning = false
 end
 
