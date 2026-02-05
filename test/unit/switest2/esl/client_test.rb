@@ -117,4 +117,80 @@ class Switest2::ESL::ClientTest < Minitest::Test
     assert_match(/origination_caller_id_number=\+4512345678/, command)
     refute_match(/origination_caller_id_number='/, command)
   end
+
+  def test_dtmf_events_are_isolated_by_uuid
+    # Start the client to register event handlers
+    @client.start
+
+    # Create two calls with different UUIDs
+    call_a = @client.dial(to: "sofia/gateway/test/111")
+    call_b = @client.dial(to: "sofia/gateway/test/222")
+
+    # Simulate DTMF event for call_a
+    @connection.simulate_event(<<~EVENT)
+      Event-Name: DTMF
+      Unique-ID: #{call_a.id}
+      DTMF-Digit: 1
+    EVENT
+
+    # Simulate DTMF event for call_b
+    @connection.simulate_event(<<~EVENT)
+      Event-Name: DTMF
+      Unique-ID: #{call_b.id}
+      DTMF-Digit: 9
+    EVENT
+
+    # Each call should only receive its own DTMF
+    assert_equal "1", call_a.receive_dtmf(count: 1, timeout: 0.1)
+    assert_equal "9", call_b.receive_dtmf(count: 1, timeout: 0.1)
+  end
+
+  def test_dtmf_events_for_unknown_uuid_are_ignored
+    @client.start
+    call = @client.dial(to: "sofia/gateway/test/123")
+
+    # Simulate DTMF event for unknown UUID
+    @connection.simulate_event(<<~EVENT)
+      Event-Name: DTMF
+      Unique-ID: unknown-uuid-xyz
+      DTMF-Digit: 5
+    EVENT
+
+    # Our call should not receive this DTMF
+    digits = call.receive_dtmf(count: 1, timeout: 0.1)
+    assert_equal "", digits
+  end
+
+  def test_answer_events_are_isolated_by_uuid
+    @client.start
+
+    call_a = @client.dial(to: "sofia/gateway/test/111")
+    call_b = @client.dial(to: "sofia/gateway/test/222")
+
+    # Only answer call_a
+    @connection.simulate_event(<<~EVENT)
+      Event-Name: CHANNEL_ANSWER
+      Unique-ID: #{call_a.id}
+    EVENT
+
+    assert call_a.answered?, "Call A should be answered"
+    refute call_b.answered?, "Call B should NOT be answered"
+  end
+
+  def test_hangup_events_are_isolated_by_uuid
+    @client.start
+
+    call_a = @client.dial(to: "sofia/gateway/test/111")
+    call_b = @client.dial(to: "sofia/gateway/test/222")
+
+    # Only hangup call_a
+    @connection.simulate_event(<<~EVENT)
+      Event-Name: CHANNEL_HANGUP_COMPLETE
+      Unique-ID: #{call_a.id}
+      Hangup-Cause: NORMAL_CLEARING
+    EVENT
+
+    assert call_a.ended?, "Call A should be ended"
+    refute call_b.ended?, "Call B should NOT be ended"
+  end
 end
