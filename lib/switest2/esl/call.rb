@@ -86,14 +86,14 @@ module Switest2
         hangup(cause)
       end
 
-      def play_audio(url)
-        sendmsg("execute", "playback", url)
+      def play_audio(url, wait: false)
+        sendmsg("execute", "playback", url, event_lock: wait)
       end
 
-      def send_dtmf(digits)
+      def send_dtmf(digits, wait: false)
         # Play DTMF tones (inband)
         tones = digits.chars.map { |d| dtmf_tone(d) }.join(";")
-        sendmsg("execute", "playback", "tone_stream://#{tones}")
+        sendmsg("execute", "playback", "tone_stream://#{tones}", event_lock: wait)
       end
 
       def receive_dtmf(count: 1, timeout: 5)
@@ -164,11 +164,12 @@ module Switest2
 
       private
 
-      def sendmsg(command, app = nil, arg = nil)
+      def sendmsg(command, app = nil, arg = nil, event_lock: false)
         msg = +"sendmsg #{@id}\n"
         msg << "call-command: #{command}\n"
         msg << "execute-app-name: #{app}\n" if app
         msg << "execute-app-arg: #{arg}\n" if arg
+        msg << "event-lock: true\n" if event_lock
         @connection.send_command(msg.chomp)
       end
 

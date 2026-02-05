@@ -335,4 +335,27 @@ class CallIntegrationTest < Switest2::Scenario
     assert alice.ended?, "Alice should be ended"
     assert_equal "USER_BUSY", alice.end_reason, "Should use custom hangup cause"
   end
+
+  def test_send_dtmf_with_wait_completes_before_hangup
+    # Set up inbound listener
+    bob = Agent.listen_for_call(to: /dtmf_wait_test/)
+
+    # Alice calls Bob
+    alice = Agent.dial("loopback/dtmf_wait_test/public")
+
+    assert bob.wait_for_call(timeout: 5), "Bob should receive call"
+    bob.answer(wait: true)
+    assert alice.wait_for_answer(timeout: 5), "Alice should be answered"
+
+    # Alice sends DTMF with wait: true, then immediately hangs up
+    # With wait: true, the tones should complete before hangup
+    alice.call.send_dtmf("789", wait: true)
+    alice.hangup
+
+    # Bob should have received all digits because send_dtmf waited for completion
+    digits = bob.call.receive_dtmf(count: 3, timeout: 2)
+    assert_equal "789", digits, "Bob should receive all DTMF digits when sender uses wait: true"
+
+    bob.wait_for_end(timeout: 5)
+  end
 end

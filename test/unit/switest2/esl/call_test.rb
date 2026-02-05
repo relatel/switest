@@ -260,4 +260,61 @@ class Switest2::ESL::CallTest < Minitest::Test
     command = @connection.commands_sent.last
     assert_match(/hangup-cause: CALL_REJECTED/, command)
   end
+
+  def test_send_dtmf_without_wait_does_not_include_event_lock
+    call = Switest2::ESL::Call.new(
+      id: "test-uuid",
+      connection: @connection,
+      direction: :outbound
+    )
+
+    call.send_dtmf("123")
+
+    command = @connection.commands_sent.last
+    assert_match(/execute-app-name: playback/, command)
+    refute_match(/event-lock/, command)
+  end
+
+  def test_send_dtmf_with_wait_includes_event_lock
+    call = Switest2::ESL::Call.new(
+      id: "test-uuid",
+      connection: @connection,
+      direction: :outbound
+    )
+
+    call.send_dtmf("123", wait: true)
+
+    command = @connection.commands_sent.last
+    assert_match(/execute-app-name: playback/, command)
+    assert_match(/event-lock: true/, command)
+  end
+
+  def test_play_audio_without_wait_does_not_include_event_lock
+    call = Switest2::ESL::Call.new(
+      id: "test-uuid",
+      connection: @connection,
+      direction: :outbound
+    )
+
+    call.play_audio("/tmp/test.wav")
+
+    command = @connection.commands_sent.last
+    assert_match(/execute-app-name: playback/, command)
+    assert_match(/execute-app-arg: \/tmp\/test.wav/, command)
+    refute_match(/event-lock/, command)
+  end
+
+  def test_play_audio_with_wait_includes_event_lock
+    call = Switest2::ESL::Call.new(
+      id: "test-uuid",
+      connection: @connection,
+      direction: :outbound
+    )
+
+    call.play_audio("/tmp/test.wav", wait: true)
+
+    command = @connection.commands_sent.last
+    assert_match(/execute-app-name: playback/, command)
+    assert_match(/event-lock: true/, command)
+  end
 end
