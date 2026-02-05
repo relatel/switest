@@ -29,23 +29,27 @@ module Switest2
       end
 
       def stop
-        # Hangup all active calls before disconnecting
-        if @connection&.connected?
-          @calls.each_value do |call|
-            next if call.ended?
-            begin
-              call.hangup("NORMAL_CLEARING", wait: 2)
-            rescue
-              # Ignore errors during cleanup
-            end
-          end
-        end
-
+        hangup_all
         @connection&.disconnect
 
         # Mark any remaining calls as ended locally
         @calls.each_value { |call| call.handle_hangup("SWITCH_SHUTDOWN") unless call.ended? }
         @calls.clear
+      end
+
+      # Hangup all active calls individually and wait for them to end.
+      # This ensures proper hangup_cause is set for each call (important for CDRs).
+      def hangup_all(cause: "NORMAL_CLEARING", timeout: 5)
+        return unless @connection&.connected?
+
+        @calls.each_value do |call|
+          next if call.ended?
+          begin
+            call.hangup(cause, wait: timeout)
+          rescue
+            # Ignore errors during cleanup
+          end
+        end
       end
 
       def dial(to:, from: nil, headers: {})

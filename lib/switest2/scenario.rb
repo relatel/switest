@@ -31,6 +31,12 @@ module Switest2
       @client&.stop
     end
 
+    # Hangup all active calls and wait for them to end.
+    # Useful when tests need all legs hung up before proceeding (e.g., for CDR writes).
+    def hangup_all(cause: "NORMAL_CLEARING", timeout: 5)
+      @client&.hangup_all(cause: cause, timeout: timeout)
+    end
+
     # Assertions
     def assert_call(agent, timeout: 5)
       success = agent.wait_for_call(timeout: timeout)
