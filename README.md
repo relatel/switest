@@ -14,8 +14,9 @@ gem "switest2"
 ## Quick Start
 
 ```ruby
+# test/my_scenario_test.rb
+require "minitest"
 require "switest2"
-require "switest2/autorun"
 
 class MyScenario < Switest2::Scenario
   def test_outbound_call
@@ -26,6 +27,26 @@ class MyScenario < Switest2::Scenario
     assert alice.ended?, "Call should be ended"
   end
 end
+```
+
+## Running Tests
+
+Use Minitest's rake task to run your tests:
+
+```ruby
+# Rakefile
+require "minitest/test_task"
+
+Minitest::TestTask.create(:test) do |t|
+  t.libs << "lib" << "test"
+  t.test_globs = ["test/**/*_test.rb"]
+end
+```
+
+Then run with:
+
+```bash
+bundle exec rake test
 ```
 
 ## Core Concepts
@@ -207,6 +228,13 @@ Agent.listen_for_call(to: /^1000/, from: /^\+45/)
 
 # Match exact value
 Agent.listen_for_call(to: "1000")
+```
+
+### Scenario Helper Methods
+
+```ruby
+# Hangup all active calls (useful for cleanup before CDR writes)
+hangup_all(cause: "NORMAL_CLEARING", timeout: 5)
 ```
 
 ## Provided Assertions
