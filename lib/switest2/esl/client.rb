@@ -51,16 +51,14 @@ module Switest2
       def dial(to:, from: nil, headers: {})
         uuid = SecureRandom.uuid
 
-        # Build originate string
-        vars = ["origination_uuid=#{uuid}"]
+        # Build channel variables
+        vars = { origination_uuid: uuid }
         if from
-          vars << "origination_caller_id_number=#{from}"
-          vars << "origination_caller_id_name=#{from}"
+          vars[:origination_caller_id_number] = from
+          vars[:origination_caller_id_name] = from
         end
-        # Prefix with sip_h_ to send as actual SIP headers
-        headers.each { |k, v| vars << "sip_h_#{k}=#{v}" }
 
-        var_string = "{#{vars.join(",")}}"
+        var_string = Escaper.build_var_string(vars, headers)
 
         # Create call object before originate
         call = Call.new(

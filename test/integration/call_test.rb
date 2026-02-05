@@ -230,4 +230,28 @@ class CallIntegrationTest < Switest2::Scenario
     assert alice.ended?, "Alice should be ended"
     assert bob.ended?, "Bob should be ended"
   end
+
+  def test_dial_with_caller_id_containing_spaces
+    # Test that caller ID with spaces is properly escaped
+    alice = Agent.dial("loopback/echo/public", from: "gibberish sip:+4512345678@example.com")
+
+    assert alice.call?, "Agent should have a call"
+    alice.wait_for_answer(timeout: 5)
+    assert alice.answered?, "Call should be answered"
+
+    alice.hangup(wait: 5)
+    assert alice.ended?, "Call should be ended"
+  end
+
+  def test_dial_with_simple_caller_id
+    # Test that simple caller ID without special chars works
+    alice = Agent.dial("loopback/echo/public", from: "+4512345678")
+
+    assert alice.call?, "Agent should have a call"
+    alice.wait_for_answer(timeout: 5)
+    assert alice.answered?, "Call should be answered"
+
+    alice.hangup(wait: 5)
+    assert alice.ended?, "Call should be ended"
+  end
 end
