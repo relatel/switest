@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Switest2
+module Switest
   # Hash subclass with case-insensitive key lookup
   class CaseInsensitiveHash < Hash
     def self.from(hash)

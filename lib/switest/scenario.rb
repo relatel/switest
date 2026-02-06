@@ -2,10 +2,10 @@
 
 require "minitest/test"
 
-module Switest2
+module Switest
   class Scenario < Minitest::Test
     # Make Agent accessible to subclasses
-    Agent = Switest2::Agent
+    Agent = Switest::Agent
 
     def setup
       @events = Events.new

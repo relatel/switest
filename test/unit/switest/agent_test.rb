@@ -1,23 +1,23 @@
 # frozen_string_literal: true
 
-require_relative "../../switest2_test_helper"
+require_relative "../../switest_test_helper"
 
-class Switest2::AgentTest < Minitest::Test
+class Switest::AgentTest < Minitest::Test
   def setup
-    @events = Switest2::Events.new
-    @connection = Switest2::ESL::MockConnection.new
-    @client = Switest2::ESL::Client.new(@connection)
-    Switest2::Agent.setup(@client, @events)
+    @events = Switest::Events.new
+    @connection = Switest::ESL::MockConnection.new
+    @client = Switest::ESL::Client.new(@connection)
+    Switest::Agent.setup(@client, @events)
   end
 
   def teardown
-    Switest2::Agent.teardown
+    Switest::Agent.teardown
   end
 
   def test_listen_for_call_without_conditions
-    agent = Switest2::Agent.listen_for_call
+    agent = Switest::Agent.listen_for_call
 
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :inbound,
@@ -30,9 +30,9 @@ class Switest2::AgentTest < Minitest::Test
   end
 
   def test_with_conditions_matching
-    agent = Switest2::Agent.listen_for_call(to: /71999999/)
+    agent = Switest::Agent.listen_for_call(to: /71999999/)
 
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :inbound,
@@ -45,9 +45,9 @@ class Switest2::AgentTest < Minitest::Test
   end
 
   def test_with_conditions_not_matching
-    agent = Switest2::Agent.listen_for_call(to: /71999999/)
+    agent = Switest::Agent.listen_for_call(to: /71999999/)
 
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :inbound,
@@ -60,9 +60,9 @@ class Switest2::AgentTest < Minitest::Test
   end
 
   def test_wait_for_call_success
-    agent = Switest2::Agent.listen_for_call(to: /71999999/)
+    agent = Switest::Agent.listen_for_call(to: /71999999/)
 
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :inbound,
@@ -83,7 +83,7 @@ class Switest2::AgentTest < Minitest::Test
   end
 
   def test_wait_for_call_timeout
-    agent = Switest2::Agent.listen_for_call(to: /71999999/)
+    agent = Switest::Agent.listen_for_call(to: /71999999/)
 
     Timeout.timeout(2) do
       result = agent.wait_for_call(timeout: 0.5)
@@ -93,13 +93,13 @@ class Switest2::AgentTest < Minitest::Test
   end
 
   def test_wait_for_answer
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :outbound,
       to: "71999999"
     )
-    agent = Switest2::Agent.new(call)
+    agent = Switest::Agent.new(call)
 
     Thread.new {
       sleep 0.5
@@ -114,13 +114,13 @@ class Switest2::AgentTest < Minitest::Test
   end
 
   def test_wait_for_end
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :outbound,
       to: "71999999"
     )
-    agent = Switest2::Agent.new(call)
+    agent = Switest::Agent.new(call)
 
     Thread.new {
       sleep 0.5
@@ -135,13 +135,13 @@ class Switest2::AgentTest < Minitest::Test
   end
 
   def test_answer_sends_command
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :inbound,
       to: "71999999"
     )
-    agent = Switest2::Agent.new(call)
+    agent = Switest::Agent.new(call)
 
     agent.answer(wait: false)
 
@@ -149,13 +149,13 @@ class Switest2::AgentTest < Minitest::Test
   end
 
   def test_hangup_sends_command
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :inbound,
       to: "71999999"
     )
-    agent = Switest2::Agent.new(call)
+    agent = Switest::Agent.new(call)
 
     agent.hangup(wait: false)
 

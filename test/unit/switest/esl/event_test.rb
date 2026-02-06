@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative "../../../switest2_test_helper"
+require_relative "../../../switest_test_helper"
 
-class Switest2::ESL::EventTest < Minitest::Test
+class Switest::ESL::EventTest < Minitest::Test
   def test_parse_basic_event
     raw = <<~EVENT
       Event-Name: CHANNEL_ANSWER
@@ -11,7 +11,7 @@ class Switest2::ESL::EventTest < Minitest::Test
       Caller-Destination-Number: 1000
     EVENT
 
-    event = Switest2::ESL::Event.parse(raw)
+    event = Switest::ESL::Event.parse(raw)
 
     assert_equal "CHANNEL_ANSWER", event.name
     assert_equal "abc123", event.uuid
@@ -25,14 +25,14 @@ class Switest2::ESL::EventTest < Minitest::Test
       Caller-Caller-ID-Name: John%20Doe
     EVENT
 
-    event = Switest2::ESL::Event.parse(raw)
+    event = Switest::ESL::Event.parse(raw)
 
     assert_equal "John Doe", event["Caller-Caller-ID-Name"]
   end
 
   def test_parse_returns_nil_for_empty_data
-    assert_nil Switest2::ESL::Event.parse(nil)
-    assert_nil Switest2::ESL::Event.parse("")
+    assert_nil Switest::ESL::Event.parse(nil)
+    assert_nil Switest::ESL::Event.parse("")
   end
 
   def test_uuid_prefers_unique_id
@@ -42,7 +42,7 @@ class Switest2::ESL::EventTest < Minitest::Test
       Channel-Call-UUID: channel-uuid-value
     EVENT
 
-    event = Switest2::ESL::Event.parse(raw)
+    event = Switest::ESL::Event.parse(raw)
 
     assert_equal "unique-id-value", event.uuid
   end
@@ -53,7 +53,7 @@ class Switest2::ESL::EventTest < Minitest::Test
       Channel-Call-UUID: channel-uuid-value
     EVENT
 
-    event = Switest2::ESL::Event.parse(raw)
+    event = Switest::ESL::Event.parse(raw)
 
     assert_equal "channel-uuid-value", event.uuid
   end
@@ -64,7 +64,7 @@ class Switest2::ESL::EventTest < Minitest::Test
       variable_sip_from_uri: sip:alice@example.com
     EVENT
 
-    event = Switest2::ESL::Event.parse(raw)
+    event = Switest::ESL::Event.parse(raw)
 
     assert_equal "sip:alice@example.com", event.variable("sip_from_uri")
   end
@@ -75,7 +75,7 @@ class Switest2::ESL::EventTest < Minitest::Test
       Hangup-Cause: NORMAL_CLEARING
     EVENT
 
-    event = Switest2::ESL::Event.parse(raw)
+    event = Switest::ESL::Event.parse(raw)
 
     assert_equal "NORMAL_CLEARING", event.hangup_cause
   end
@@ -86,7 +86,7 @@ class Switest2::ESL::EventTest < Minitest::Test
       Call-Direction: inbound
     EVENT
 
-    event = Switest2::ESL::Event.parse(raw)
+    event = Switest::ESL::Event.parse(raw)
 
     assert_equal "inbound", event.call_direction
   end
@@ -97,7 +97,7 @@ class Switest2::ESL::EventTest < Minitest::Test
       Custom-Header: custom-value
     EVENT
 
-    event = Switest2::ESL::Event.parse(raw)
+    event = Switest::ESL::Event.parse(raw)
 
     assert_equal "custom-value", event["Custom-Header"]
   end

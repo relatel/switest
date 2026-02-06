@@ -1,23 +1,23 @@
 # frozen_string_literal: true
 
-require_relative "../../switest2_test_helper"
+require_relative "../../switest_test_helper"
 
 # Test scenario assertions directly in Minitest context
-class Switest2::ScenarioTest < Minitest::Test
+class Switest::ScenarioTest < Minitest::Test
   def setup
-    @events = Switest2::Events.new
-    @connection = Switest2::ESL::MockConnection.new
-    @client = Switest2::ESL::Client.new(@connection)
-    Switest2::Agent.setup(@client, @events)
+    @events = Switest::Events.new
+    @connection = Switest::ESL::MockConnection.new
+    @client = Switest::ESL::Client.new(@connection)
+    Switest::Agent.setup(@client, @events)
   end
 
   def teardown
-    Switest2::Agent.teardown
+    Switest::Agent.teardown
   end
 
   # Helper to create a call
   def make_call(to: "71999999", from: "12345")
-    Switest2::ESL::Call.new(
+    Switest::ESL::Call.new(
       id: "test-uuid-#{rand(10000)}",
       connection: @connection,
       direction: :inbound,
@@ -30,7 +30,7 @@ class Switest2::ScenarioTest < Minitest::Test
   # since we can't easily mock the ESL connection in Scenario.setup
 
   def test_assert_call_success
-    agent = Switest2::Agent.listen_for_call
+    agent = Switest::Agent.listen_for_call
     call = make_call
 
     @events.emit(:offer, { to: call.to, from: call.from, call: call })
@@ -42,7 +42,7 @@ class Switest2::ScenarioTest < Minitest::Test
   end
 
   def test_assert_call_failure
-    agent = Switest2::Agent.listen_for_call
+    agent = Switest::Agent.listen_for_call
 
     # No call emitted, so wait should timeout
     success = agent.wait_for_call(timeout: 0.5)
@@ -51,7 +51,7 @@ class Switest2::ScenarioTest < Minitest::Test
   end
 
   def test_assert_no_call_success
-    agent = Switest2::Agent.listen_for_call
+    agent = Switest::Agent.listen_for_call
 
     # No call emitted
     sleep 0.2
@@ -59,7 +59,7 @@ class Switest2::ScenarioTest < Minitest::Test
   end
 
   def test_assert_no_call_failure
-    agent = Switest2::Agent.listen_for_call
+    agent = Switest::Agent.listen_for_call
     call = make_call
 
     @events.emit(:offer, { to: call.to, from: call.from, call: call })
@@ -70,7 +70,7 @@ class Switest2::ScenarioTest < Minitest::Test
 
   def test_assert_hungup_success
     call = make_call
-    agent = Switest2::Agent.new(call)
+    agent = Switest::Agent.new(call)
 
     Thread.new {
       sleep 0.2
@@ -84,7 +84,7 @@ class Switest2::ScenarioTest < Minitest::Test
 
   def test_assert_hungup_failure
     call = make_call
-    agent = Switest2::Agent.new(call)
+    agent = Switest::Agent.new(call)
 
     # Don't hangup, so wait should timeout
     success = agent.wait_for_end(timeout: 0.3)
@@ -94,7 +94,7 @@ class Switest2::ScenarioTest < Minitest::Test
 
   def test_assert_not_hungup_success
     call = make_call
-    agent = Switest2::Agent.new(call)
+    agent = Switest::Agent.new(call)
 
     # Call is still alive
     sleep 0.2
@@ -103,7 +103,7 @@ class Switest2::ScenarioTest < Minitest::Test
 
   def test_assert_dtmf_success
     call = make_call
-    agent = Switest2::Agent.new(call)
+    agent = Switest::Agent.new(call)
 
     Thread.new {
       sleep 0.1
@@ -118,7 +118,7 @@ class Switest2::ScenarioTest < Minitest::Test
 
   def test_assert_dtmf_partial_timeout
     call = make_call
-    agent = Switest2::Agent.new(call)
+    agent = Switest::Agent.new(call)
 
     Thread.new {
       sleep 0.1

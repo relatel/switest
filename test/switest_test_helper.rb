@@ -5,10 +5,10 @@ require "bundler/setup"
 require "minitest"
 require "minitest/autorun"
 
-require "switest2"
+require "switest"
 
 # Mock ESL Connection for unit tests
-module Switest2
+module Switest
   module ESL
     class MockConnection
       attr_reader :commands_sent, :event_handlers

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Switest2
+module Switest
   # Custom EventEmitter with guard support for conditional event handling.
   # Supports hash equality, regex, array membership, and proc guards.
   class Events

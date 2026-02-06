@@ -1,5 +1,5 @@
 # frozen_string_literal: true
 
-module Switest2
+module Switest
   VERSION = "0.1.0"
 end

@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require_relative "../../../switest2_test_helper"
+require_relative "../../../switest_test_helper"
 
-class Switest2::ESL::ConnectionTest < Minitest::Test
+class Switest::ESL::ConnectionTest < Minitest::Test
   # Build a Connection wired to an IO.pipe instead of a real socket.
   # Returns [connection, write_io] so tests can feed ESL protocol data.
   def build_connection
     read_io, write_io = IO.pipe
-    conn = Switest2::ESL::Connection.allocate
+    conn = Switest::ESL::Connection.allocate
     conn.instance_variable_set(:@host, "127.0.0.1")
     conn.instance_variable_set(:@port, 8021)
     conn.instance_variable_set(:@password, "ClueCon")
@@ -106,7 +106,7 @@ class Switest2::ESL::ConnectionTest < Minitest::Test
 
     writer.write("Content-Type: text/disconnect-notice\n\n")
 
-    assert_raises(Switest2::ConnectionError) do
+    assert_raises(Switest::ConnectionError) do
       conn.send(:read_command_response)
     end
   ensure

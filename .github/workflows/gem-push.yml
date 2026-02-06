@@ -5,7 +5,7 @@ on:
     branches:
       - master
     paths:
-      - lib/switest2/version.rb
+      - lib/switest/version.rb
 
 jobs:
   build:

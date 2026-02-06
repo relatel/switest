@@ -7,7 +7,7 @@
 
 require_relative "../integration_test_helper"
 
-class ScenarioIntegrationTest < Switest2::Scenario
+class ScenarioIntegrationTest < Switest::Scenario
 
   def test_scenario_setup_connects
     # setup already ran, client should be connected
@@ -27,7 +27,7 @@ class ScenarioIntegrationTest < Switest2::Scenario
     agent = Agent.dial("loopback/echo/public")
 
     assert agent.call?, "Agent should have a call after dial"
-    assert_instance_of Switest2::ESL::Call, agent.call
+    assert_instance_of Switest::ESL::Call, agent.call
 
     # Wait for the loopback legs to bridge
     agent.wait_for_bridge(timeout: 5)

@@ -3,7 +3,7 @@
 require "securerandom"
 require_relative "from_parser"
 
-module Switest2
+module Switest
   module ESL
     class Client
       attr_reader :connection, :calls
@@ -17,9 +17,9 @@ module Switest2
 
       def start
         @connection ||= Connection.new(
-          host: Switest2.configuration.host,
-          port: Switest2.configuration.port,
-          password: Switest2.configuration.password
+          host: Switest.configuration.host,
+          port: Switest.configuration.port,
+          password: Switest.configuration.password
         )
         @connection.connect
 

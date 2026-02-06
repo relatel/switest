@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Switest2
+module Switest
   module ESL
     # Escapes values for use in FreeSWITCH channel variable strings.
     #

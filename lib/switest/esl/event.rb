@@ -2,7 +2,7 @@
 
 require "uri"
 
-module Switest2
+module Switest
   module ESL
     class Event
       attr_reader :headers
@@ -13,7 +13,7 @@ module Switest2
       end
 
       def initialize(raw_data)
-        @headers = Switest2::CaseInsensitiveHash.new
+        @headers = Switest::CaseInsensitiveHash.new
         parse_headers(raw_data)
       end
 

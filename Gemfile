@@ -1,6 +1,6 @@
 source "https://rubygems.org"
 
-gemspec name: "switest2"
+gemspec name: "switest"
 
 group :test do
   gem "rake"

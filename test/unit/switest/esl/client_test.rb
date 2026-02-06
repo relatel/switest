@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require_relative "../../../switest2_test_helper"
+require_relative "../../../switest_test_helper"
 
-class Switest2::ESL::ClientTest < Minitest::Test
+class Switest::ESL::ClientTest < Minitest::Test
   def setup
-    @connection = Switest2::ESL::MockConnection.new
-    @client = Switest2::ESL::Client.new(@connection)
+    @connection = Switest::ESL::MockConnection.new
+    @client = Switest::ESL::Client.new(@connection)
   end
 
   def test_dial_sets_origination_uuid
@@ -66,7 +66,7 @@ class Switest2::ESL::ClientTest < Minitest::Test
   def test_dial_returns_call_object
     call = @client.dial(to: "sofia/gateway/test/123")
 
-    assert_instance_of Switest2::ESL::Call, call
+    assert_instance_of Switest::ESL::Call, call
     assert call.outbound?
     assert_equal "sofia/gateway/test/123", call.to
   end

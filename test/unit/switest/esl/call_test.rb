@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
-require_relative "../../../switest2_test_helper"
+require_relative "../../../switest_test_helper"
 
-class Switest2::ESL::CallTest < Minitest::Test
+class Switest::ESL::CallTest < Minitest::Test
   def setup
-    @connection = Switest2::ESL::MockConnection.new
+    @connection = Switest::ESL::MockConnection.new
   end
 
   def test_initial_state_is_offered
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :inbound
@@ -22,7 +22,7 @@ class Switest2::ESL::CallTest < Minitest::Test
   end
 
   def test_handle_answer_transitions_to_answered
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :inbound
@@ -39,7 +39,7 @@ class Switest2::ESL::CallTest < Minitest::Test
   end
 
   def test_handle_hangup_transitions_to_ended
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :inbound
@@ -56,7 +56,7 @@ class Switest2::ESL::CallTest < Minitest::Test
   end
 
   def test_handle_hangup_merges_headers
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :inbound
@@ -72,7 +72,7 @@ class Switest2::ESL::CallTest < Minitest::Test
   end
 
   def test_answered_true_after_hangup_if_was_answered
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :inbound
@@ -86,7 +86,7 @@ class Switest2::ESL::CallTest < Minitest::Test
   end
 
   def test_on_answer_callback
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :inbound
@@ -100,7 +100,7 @@ class Switest2::ESL::CallTest < Minitest::Test
   end
 
   def test_on_end_callback
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :inbound
@@ -114,7 +114,7 @@ class Switest2::ESL::CallTest < Minitest::Test
   end
 
   def test_wait_for_answer_returns_true_on_answer
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :inbound
@@ -130,7 +130,7 @@ class Switest2::ESL::CallTest < Minitest::Test
   end
 
   def test_wait_for_answer_returns_false_on_timeout
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :inbound
@@ -141,7 +141,7 @@ class Switest2::ESL::CallTest < Minitest::Test
   end
 
   def test_wait_for_end_returns_true_on_hangup
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :inbound
@@ -157,7 +157,7 @@ class Switest2::ESL::CallTest < Minitest::Test
   end
 
   def test_handle_bridge_sets_bridged
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :outbound
@@ -169,7 +169,7 @@ class Switest2::ESL::CallTest < Minitest::Test
   end
 
   def test_handle_bridge_ignored_after_hangup
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :outbound
@@ -188,7 +188,7 @@ class Switest2::ESL::CallTest < Minitest::Test
   end
 
   def test_on_bridge_callback
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :outbound
@@ -202,7 +202,7 @@ class Switest2::ESL::CallTest < Minitest::Test
   end
 
   def test_wait_for_bridge_returns_true_on_bridge
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :outbound
@@ -218,7 +218,7 @@ class Switest2::ESL::CallTest < Minitest::Test
   end
 
   def test_wait_for_bridge_returns_false_on_timeout
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :outbound
@@ -229,7 +229,7 @@ class Switest2::ESL::CallTest < Minitest::Test
   end
 
   def test_wait_for_bridge_unblocks_on_hangup
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :outbound
@@ -246,7 +246,7 @@ class Switest2::ESL::CallTest < Minitest::Test
   end
 
   def test_dtmf_buffering
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :inbound
@@ -261,7 +261,7 @@ class Switest2::ESL::CallTest < Minitest::Test
   end
 
   def test_dtmf_timeout
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :inbound
@@ -274,13 +274,13 @@ class Switest2::ESL::CallTest < Minitest::Test
   end
 
   def test_inbound_outbound_direction
-    inbound = Switest2::ESL::Call.new(
+    inbound = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :inbound
     )
 
-    outbound = Switest2::ESL::Call.new(
+    outbound = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :outbound
@@ -293,13 +293,13 @@ class Switest2::ESL::CallTest < Minitest::Test
   end
 
   def test_answer_only_works_for_inbound_offered
-    inbound = Switest2::ESL::Call.new(
+    inbound = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :inbound
     )
 
-    outbound = Switest2::ESL::Call.new(
+    outbound = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :outbound
@@ -314,7 +314,7 @@ class Switest2::ESL::CallTest < Minitest::Test
   end
 
   def test_hangup_sends_hangup_cause_header
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :outbound
@@ -328,7 +328,7 @@ class Switest2::ESL::CallTest < Minitest::Test
   end
 
   def test_hangup_defaults_to_normal_clearing
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :outbound
@@ -341,7 +341,7 @@ class Switest2::ESL::CallTest < Minitest::Test
   end
 
   def test_reject_busy_uses_user_busy_cause
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :inbound
@@ -354,7 +354,7 @@ class Switest2::ESL::CallTest < Minitest::Test
   end
 
   def test_reject_decline_uses_call_rejected_cause
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :inbound
@@ -367,7 +367,7 @@ class Switest2::ESL::CallTest < Minitest::Test
   end
 
   def test_send_dtmf_defaults_to_wait_true
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :outbound
@@ -382,7 +382,7 @@ class Switest2::ESL::CallTest < Minitest::Test
   end
 
   def test_send_dtmf_with_wait_false_omits_event_lock
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :outbound
@@ -397,7 +397,7 @@ class Switest2::ESL::CallTest < Minitest::Test
   end
 
   def test_play_audio_defaults_to_wait_true
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :outbound
@@ -412,7 +412,7 @@ class Switest2::ESL::CallTest < Minitest::Test
   end
 
   def test_play_audio_with_wait_false_omits_event_lock
-    call = Switest2::ESL::Call.new(
+    call = Switest::ESL::Call.new(
       id: "test-uuid",
       connection: @connection,
       direction: :outbound

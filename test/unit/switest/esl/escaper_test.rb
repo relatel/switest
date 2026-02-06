@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative "../../../switest2_test_helper"
+require_relative "../../../switest_test_helper"
 
-class Switest2::ESL::EscaperTest < Minitest::Test
-  Escaper = Switest2::ESL::Escaper
+class Switest::ESL::EscaperTest < Minitest::Test
+  Escaper = Switest::ESL::Escaper
 
   # escape_value tests
 

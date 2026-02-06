@@ -9,8 +9,8 @@ require_relative "../integration_test_helper"
 
 class ESLConnectionIntegrationTest < Minitest::Test
   def setup
-    config = Switest2.configuration
-    @connection = Switest2::ESL::Connection.new(
+    config = Switest.configuration
+    @connection = Switest::ESL::Connection.new(
       host: config.host,
       port: config.port,
       password: config.password
@@ -52,7 +52,7 @@ class ESLConnectionIntegrationTest < Minitest::Test
   def test_api_error_handling
     @connection.connect
 
-    error = assert_raises(Switest2::Error) do
+    error = assert_raises(Switest::Error) do
       @connection.api("nonexistent_command_xyz")
     end
 
@@ -69,14 +69,14 @@ class ESLConnectionIntegrationTest < Minitest::Test
   end
 
   def test_authentication_failure
-    config = Switest2.configuration
-    bad_connection = Switest2::ESL::Connection.new(
+    config = Switest.configuration
+    bad_connection = Switest::ESL::Connection.new(
       host: config.host,
       port: config.port,
       password: "wrong_password"
     )
 
-    error = assert_raises(Switest2::AuthenticationError) do
+    error = assert_raises(Switest::AuthenticationError) do
       bad_connection.connect
     end
 
@@ -88,7 +88,7 @@ class ESLConnectionIntegrationTest < Minitest::Test
   end
 
   def test_connection_refused
-    bad_connection = Switest2::ESL::Connection.new(
+    bad_connection = Switest::ESL::Connection.new(
       host: "127.0.0.1",
       port: 59999,  # Unlikely to be in use
       password: "ClueCon"

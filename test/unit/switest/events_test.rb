@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative "../../switest2_test_helper"
+require_relative "../../switest_test_helper"
 
-class Switest2::EventsTest < Minitest::Test
+class Switest::EventsTest < Minitest::Test
   def setup
-    @events = Switest2::Events.new
+    @events = Switest::Events.new
   end
 
   def test_on_registers_handler

@@ -1,17 +1,17 @@
 # frozen_string_literal: true
 
-require_relative "../../switest2_test_helper"
+require_relative "../../switest_test_helper"
 
-class Switest2::CaseInsensitiveHashTest < Minitest::Test
+class Switest::CaseInsensitiveHashTest < Minitest::Test
   def test_exact_key_match
-    hash = Switest2::CaseInsensitiveHash.new
+    hash = Switest::CaseInsensitiveHash.new
     hash["Content-Type"] = "text/plain"
 
     assert_equal "text/plain", hash["Content-Type"]
   end
 
   def test_case_insensitive_lookup
-    hash = Switest2::CaseInsensitiveHash.new
+    hash = Switest::CaseInsensitiveHash.new
     hash["Content-Type"] = "text/plain"
 
     assert_equal "text/plain", hash["content-type"]
@@ -20,7 +20,7 @@ class Switest2::CaseInsensitiveHashTest < Minitest::Test
   end
 
   def test_missing_key_returns_nil
-    hash = Switest2::CaseInsensitiveHash.new
+    hash = Switest::CaseInsensitiveHash.new
     hash["Content-Type"] = "text/plain"
 
     assert_nil hash["X-Custom"]
@@ -29,7 +29,7 @@ class Switest2::CaseInsensitiveHashTest < Minitest::Test
 
   def test_from_creates_from_hash
     source = { "Privacy" => "user;id", "X-Custom" => "value" }
-    hash = Switest2::CaseInsensitiveHash.from(source)
+    hash = Switest::CaseInsensitiveHash.from(source)
 
     assert_equal "user;id", hash["Privacy"]
     assert_equal "user;id", hash["privacy"]
@@ -37,7 +37,7 @@ class Switest2::CaseInsensitiveHashTest < Minitest::Test
   end
 
   def test_sip_header_variable_lookup
-    hash = Switest2::CaseInsensitiveHash.new
+    hash = Switest::CaseInsensitiveHash.new
     hash["variable_sip_P-Asserted-Identity"] = "sip:+4512345678@example.com"
 
     # Both cases should work
@@ -46,7 +46,7 @@ class Switest2::CaseInsensitiveHashTest < Minitest::Test
   end
 
   def test_inherits_hash_methods
-    hash = Switest2::CaseInsensitiveHash.new
+    hash = Switest::CaseInsensitiveHash.new
     hash["Key1"] = "value1"
     hash["Key2"] = "value2"
 

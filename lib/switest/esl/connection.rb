@@ -3,7 +3,7 @@
 require "socket"
 require "concurrent"
 
-module Switest2
+module Switest
   module ESL
     # Thread-safe ESL connection.
     #
@@ -65,7 +65,7 @@ module Switest2
         # Wait for response with timeout
         result = promise.value(timeout)
         if promise.pending?
-          raise Switest2::Error, "Command timed out: #{cmd}"
+          raise Switest::Error, "Command timed out: #{cmd}"
         elsif promise.rejected?
           raise promise.reason
         end
@@ -80,7 +80,7 @@ module Switest2
       def api(cmd)
         response = send_command("api #{cmd}")
         body = response[:body] || ""
-        raise Switest2::Error, body if body.start_with?("-ERR")
+        raise Switest::Error, body if body.start_with?("-ERR")
         body
       end
 
@@ -118,7 +118,7 @@ module Switest2
         response = read_response
         reply = response[:headers]["Reply-Text"] || ""
         unless reply.start_with?("+OK")
-          raise Switest2::Error, "Failed to subscribe to events: #{reply}"
+          raise Switest::Error, "Failed to subscribe to events: #{reply}"
         end
       end
 

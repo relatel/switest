@@ -2,7 +2,7 @@
 
 require "concurrent"
 
-module Switest2
+module Switest
   module ESL
     class Call
       attr_reader :id, :to, :from, :headers, :direction
@@ -15,7 +15,7 @@ module Switest2
         @direction = direction  # :inbound or :outbound
         @to = to
         @from = from
-        @headers = Switest2::CaseInsensitiveHash.from(headers)
+        @headers = Switest::CaseInsensitiveHash.from(headers)
 
         @state = :offered
         @start_time = Time.now

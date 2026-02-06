@@ -9,7 +9,7 @@ require_relative "../integration_test_helper"
 
 class ESLClientIntegrationTest < Minitest::Test
   def setup
-    @client = Switest2::ESL::Client.new
+    @client = Switest::ESL::Client.new
   end
 
   def teardown
@@ -62,7 +62,7 @@ class ESLClientIntegrationTest < Minitest::Test
     # but the call will fail (no actual SIP endpoint)
     call = @client.dial(to: "error/]]invalid[[")
 
-    assert_instance_of Switest2::ESL::Call, call
+    assert_instance_of Switest::ESL::Call, call
     assert call.id, "Call should have an ID"
 
     # The call should be tracked

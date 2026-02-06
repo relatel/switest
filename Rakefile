@@ -5,7 +5,7 @@ require "minitest/test_task"
 
 Minitest::TestTask.create(:test) do |t|
   t.libs << "lib" << "test"
-  t.test_globs = ["test/unit/switest2/**/*_test.rb"]
+  t.test_globs = ["test/unit/switest/**/*_test.rb"]
   t.warning = false
 end
 
@@ -18,13 +18,13 @@ end
 
 Minitest::TestTask.create(:all) do |t|
   t.libs << "lib" << "test"
-  t.test_globs = ["test/unit/switest2/**/*_test.rb", "test/integration/**/*_test.rb"]
+  t.test_globs = ["test/unit/switest/**/*_test.rb", "test/integration/**/*_test.rb"]
   t.warning = false
 end
 
 task :version do
-  require_relative "lib/switest2/version"
-  print Switest2::VERSION
+  require_relative "lib/switest/version"
+  print Switest::VERSION
 end
 
 task default: :test

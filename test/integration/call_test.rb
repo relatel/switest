@@ -7,7 +7,7 @@
 
 require_relative "../integration_test_helper"
 
-class CallIntegrationTest < Switest2::Scenario
+class CallIntegrationTest < Switest::Scenario
 
   def test_dial_and_hangup
     # Dial a loopback call that parks

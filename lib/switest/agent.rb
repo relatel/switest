@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Switest2
+module Switest
   class Agent
     class << self
       # Shared client for all agents in a test

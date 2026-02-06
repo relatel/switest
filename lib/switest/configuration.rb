@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Switest2
+module Switest
   class Configuration
     attr_accessor :host, :port, :password, :default_timeout
 
