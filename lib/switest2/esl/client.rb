@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "securerandom"
+require_relative "from_parser"
 
 module Switest2
   module ESL
@@ -51,16 +52,16 @@ module Switest2
         end
       end
 
-      def dial(to:, from: nil, headers: {})
+      def dial(to:, from: nil, timeout: nil, headers: {})
         uuid = SecureRandom.uuid
 
         # Build channel variables
-        vars = { origination_uuid: uuid }
-        if from
-          cid_number, cid_name = parse_caller_id(from)
-          vars[:origination_caller_id_number] = cid_number if cid_number
-          vars[:origination_caller_id_name] = cid_name if cid_name
-        end
+        vars = {
+          origination_uuid: uuid,
+          return_ring_ready: true
+        }
+        vars.merge!(FromParser.parse(from)) if from
+        vars[:originate_timeout] = timeout if timeout
 
         var_string = Escaper.build_var_string(vars, headers)
 
@@ -193,24 +194,6 @@ module Switest2
 
         digit = event["DTMF-Digit"]
         call.handle_dtmf(digit) if digit
-      end
-
-      # Parse a caller ID string into [number, name].
-      # Supports the display-name format: "Name <number>"
-      # If no angle brackets, the whole string is treated as the number.
-      def parse_caller_id(from)
-        if from.match?(/\A\s*\z/)
-          [nil, nil]
-        elsif (m = from.match(/(?<name>.*)<(?<number>.*)>/))
-          name = m[:name].strip
-          number = m[:number].strip
-          [
-            number.empty? ? nil : number,
-            name.empty? ? nil : name
-          ]
-        else
-          [from, nil]
-        end
       end
 
       def fire_offer(call)

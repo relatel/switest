@@ -220,8 +220,7 @@ class CallIntegrationTest < Switest2::Scenario
     assert bob.ended?, "Bob should be ended"
   end
 
-  def test_dial_with_caller_id_containing_spaces
-    # Test that caller ID with spaces is properly escaped
+  def test_dial_with_sip_uri_and_display_name
     alice = Agent.dial("loopback/echo/public", from: "gibberish sip:+4512345678@example.com")
 
     assert alice.call?, "Agent should have a call"
@@ -232,9 +231,52 @@ class CallIntegrationTest < Switest2::Scenario
     assert alice.ended?, "Call should be ended"
   end
 
-  def test_dial_with_simple_caller_id
-    # Test that simple caller ID without special chars works
+  def test_dial_with_plain_number
     alice = Agent.dial("loopback/echo/public", from: "+4512345678")
+
+    assert alice.call?, "Agent should have a call"
+    alice.wait_for_answer(timeout: 5)
+    assert alice.answered?, "Call should be answered"
+
+    alice.hangup(wait: 5)
+    assert alice.ended?, "Call should be ended"
+  end
+
+  def test_dial_with_sip_uri_only
+    alice = Agent.dial("loopback/echo/public", from: "sip:anonymous@anonymous.invalid")
+
+    assert alice.call?, "Agent should have a call"
+    alice.wait_for_answer(timeout: 5)
+    assert alice.answered?, "Call should be answered"
+
+    alice.hangup(wait: 5)
+    assert alice.ended?, "Call should be ended"
+  end
+
+  def test_dial_with_tel_uri
+    alice = Agent.dial("loopback/echo/public", from: "tel:+4512345678")
+
+    assert alice.call?, "Agent should have a call"
+    alice.wait_for_answer(timeout: 5)
+    assert alice.answered?, "Call should be answered"
+
+    alice.hangup(wait: 5)
+    assert alice.ended?, "Call should be ended"
+  end
+
+  def test_dial_with_display_name_and_tel_uri
+    alice = Agent.dial("loopback/echo/public", from: "John Doe tel:+4512345678")
+
+    assert alice.call?, "Agent should have a call"
+    alice.wait_for_answer(timeout: 5)
+    assert alice.answered?, "Call should be answered"
+
+    alice.hangup(wait: 5)
+    assert alice.ended?, "Call should be ended"
+  end
+
+  def test_dial_with_quoted_display_name_and_angle_bracketed_sip_uri
+    alice = Agent.dial("loopback/echo/public", from: '"Henrik" <sip:1234@example.com>')
 
     assert alice.call?, "Agent should have a call"
     alice.wait_for_answer(timeout: 5)
