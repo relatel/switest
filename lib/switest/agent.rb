@@ -47,14 +47,14 @@ module Switest
       !@call.nil?
     end
 
-    def answer(wait: 5)
+    def answer(wait: :answer, timeout: 5)
       raise "No call to answer" unless @call
-      @call.answer(wait: wait)
+      @call.answer(wait: wait, timeout: timeout)
     end
 
-    def hangup(wait: 5)
+    def hangup(timeout: 5)
       raise "No call to hangup" unless @call
-      @call.hangup(wait: wait)
+      @call.hangup(timeout: timeout)
     end
 
     def reject(reason = :decline)
@@ -89,6 +89,11 @@ module Switest
     def wait_for_bridge(timeout: 5)
       raise "No call to wait for" unless @call
       @call.wait_for_bridge(timeout: timeout)
+    end
+
+    def wait_for_media(timeout: 5)
+      raise "No call to wait for" unless @call
+      @call.wait_for_media(timeout: timeout)
     end
 
     def wait_for_end(timeout: 5)

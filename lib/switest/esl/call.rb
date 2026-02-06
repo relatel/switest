@@ -24,12 +24,14 @@ module Switest
         @end_reason = nil
 
         @bridged = false
+        @media = false
         @dtmf_buffer = Queue.new
         @callbacks = { answer: [], bridge: [], end: [] }
         @mutex = Mutex.new
 
         @answered_latch = Concurrent::CountDownLatch.new(1)
         @bridged_latch = Concurrent::CountDownLatch.new(1)
+        @media_latch = Concurrent::CountDownLatch.new(1)
         @ended_latch = Concurrent::CountDownLatch.new(1)
       end
 
@@ -54,6 +56,10 @@ module Switest
         @bridged
       end
 
+      def media?
+        @media
+      end
+
       def inbound?
         @direction == :inbound
       end
@@ -63,31 +69,35 @@ module Switest
       end
 
       # Actions
-      def answer(wait: 5)
+      def answer(wait: :answer, timeout: 5)
         return unless @state == :offered && inbound?
         sendmsg("execute", "answer")
-        return unless wait
-        wait_for_answer(timeout: wait)
+        return unless timeout
+        if wait == :media
+          wait_for_media(timeout: timeout)
+        else
+          wait_for_answer(timeout: timeout)
+        end
       end
 
-      def hangup(cause = "NORMAL_CLEARING", wait: 5)
+      def hangup(cause = "NORMAL_CLEARING", timeout: 5)
         return if ended?
         msg = +"sendmsg #{@id}\n"
         msg << "call-command: hangup\n"
         msg << "hangup-cause: #{cause}"
         @connection.send_command(msg)
-        return unless wait
-        wait_for_end(timeout: wait)
+        return unless timeout
+        wait_for_end(timeout: timeout)
       end
 
-      def reject(reason = :decline, wait: 5)
+      def reject(reason = :decline, timeout: 5)
         return unless @state == :offered && inbound?
         cause = case reason
                 when :busy then "USER_BUSY"
                 when :decline then "CALL_REJECTED"
                 else "CALL_REJECTED"
                 end
-        hangup(cause, wait: wait)
+        hangup(cause, timeout: timeout)
       end
 
       def play_audio(url, wait: true)
@@ -141,6 +151,11 @@ module Switest
         bridged?
       end
 
+      def wait_for_media(timeout: 5)
+        @media_latch.wait(timeout)
+        media?
+      end
+
       def wait_for_end(timeout: 5)
         @ended_latch.wait(timeout)
         ended?
@@ -161,9 +176,19 @@ module Switest
         @mutex.synchronize do
           return if @state == :ended
           @bridged = true
+          @media = true
         end
         @bridged_latch.count_down
+        @media_latch.count_down
         fire_callbacks(:bridge)
+      end
+
+      def handle_media
+        @mutex.synchronize do
+          return if @state == :ended
+          @media = true
+        end
+        @media_latch.count_down
       end
 
       def handle_hangup(cause, headers = {})
@@ -176,6 +201,7 @@ module Switest
         end
         @answered_latch.count_down  # Release any waiting threads
         @bridged_latch.count_down
+        @media_latch.count_down
         @ended_latch.count_down
         fire_callbacks(:end)
       end

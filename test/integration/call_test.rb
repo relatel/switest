@@ -213,8 +213,8 @@ class CallIntegrationTest < Switest::Scenario
     assert bob.wait_for_answer(timeout: 10), "Bob should be answered"
 
     # Hangup both (wait for completion)
-    alice.hangup(wait: 15)
-    bob.hangup(wait: 15)
+    alice.hangup(timeout: 15)
+    bob.hangup(timeout: 15)
 
     assert alice.ended?, "Alice should be ended"
     assert bob.ended?, "Bob should be ended"
@@ -394,6 +394,25 @@ class CallIntegrationTest < Switest::Scenario
 
     digits = bob.call.receive_dtmf(count: 3, timeout: 5)
     assert_equal "789", digits, "Bob should receive DTMF digits from Alice"
+
+    alice.hangup
+    bob.wait_for_end(timeout: 5)
+  end
+
+  def test_wait_for_media_before_dtmf
+    # Same as above but uses wait: :media to ensure media path is ready
+    bob = Agent.listen_for_call(to: /dtmf_wait_test/)
+
+    alice = Agent.dial("loopback/dtmf_wait_test/public")
+
+    assert bob.wait_for_call(timeout: 5), "Bob should receive call"
+    bob.answer(wait: :media)
+
+    # Media is ready — send DTMF immediately without waiting for bridge
+    alice.call.send_dtmf("456")
+
+    digits = bob.call.receive_dtmf(count: 3, timeout: 5)
+    assert_equal "456", digits, "Bob should receive DTMF digits after wait_for_media"
 
     alice.hangup
     bob.wait_for_end(timeout: 5)

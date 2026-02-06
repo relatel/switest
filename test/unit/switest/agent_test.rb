@@ -143,7 +143,7 @@ class Switest::AgentTest < Minitest::Test
     )
     agent = Switest::Agent.new(call)
 
-    agent.answer(wait: false)
+    agent.answer(timeout: false)
 
     assert @connection.commands_sent.any? { |cmd| cmd.include?("answer") }
   end
@@ -157,7 +157,7 @@ class Switest::AgentTest < Minitest::Test
     )
     agent = Switest::Agent.new(call)
 
-    agent.hangup(wait: false)
+    agent.hangup(timeout: false)
 
     assert @connection.commands_sent.any? { |cmd| cmd.include?("hangup") }
   end

@@ -305,8 +305,8 @@ class Switest::ESL::CallTest < Minitest::Test
       direction: :outbound
     )
 
-    inbound.answer(wait: false)
-    outbound.answer(wait: false)
+    inbound.answer(timeout: false)
+    outbound.answer(timeout: false)
 
     # Only inbound should have sent the answer command
     answer_commands = @connection.commands_sent.select { |c| c.include?("answer") }
@@ -320,7 +320,7 @@ class Switest::ESL::CallTest < Minitest::Test
       direction: :outbound
     )
 
-    call.hangup("USER_BUSY", wait: false)
+    call.hangup("USER_BUSY", timeout: false)
 
     command = @connection.commands_sent.last
     assert_match(/call-command: hangup/, command)
@@ -334,7 +334,7 @@ class Switest::ESL::CallTest < Minitest::Test
       direction: :outbound
     )
 
-    call.hangup(wait: false)
+    call.hangup(timeout: false)
 
     command = @connection.commands_sent.last
     assert_match(/hangup-cause: NORMAL_CLEARING/, command)
@@ -347,7 +347,7 @@ class Switest::ESL::CallTest < Minitest::Test
       direction: :inbound
     )
 
-    call.reject(:busy, wait: false)
+    call.reject(:busy, timeout: false)
 
     command = @connection.commands_sent.last
     assert_match(/hangup-cause: USER_BUSY/, command)
@@ -360,7 +360,7 @@ class Switest::ESL::CallTest < Minitest::Test
       direction: :inbound
     )
 
-    call.reject(:decline, wait: false)
+    call.reject(:decline, timeout: false)
 
     command = @connection.commands_sent.last
     assert_match(/hangup-cause: CALL_REJECTED/, command)

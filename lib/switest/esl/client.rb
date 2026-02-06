@@ -45,7 +45,7 @@ module Switest
         @calls.each_value do |call|
           next if call.ended?
           begin
-            call.hangup(cause, wait: timeout)
+            call.hangup(cause, timeout: timeout)
           rescue
             # Ignore errors during cleanup
           end
@@ -116,6 +116,8 @@ module Switest
           handle_channel_answer(event)
         when "CHANNEL_BRIDGE"
           handle_channel_bridge(event)
+        when "CHANNEL_STATE"
+          handle_channel_state(event)
         when "CHANNEL_HANGUP_COMPLETE"
           handle_channel_hangup(event)
         when "DTMF"
@@ -167,6 +169,19 @@ module Switest
         other_uuid = event["Other-Leg-Unique-ID"]
         call ||= @calls[other_uuid] if other_uuid
         call&.handle_bridge
+      end
+
+      def handle_channel_state(event)
+        state = event["Channel-State"]
+        return unless state == "CS_CONSUME_MEDIA" || state == "CS_EXCHANGE_MEDIA"
+
+        uuid = event.uuid
+        return unless uuid
+
+        call = @calls[uuid]
+        other_uuid = event["Other-Leg-Unique-ID"]
+        call ||= @calls[other_uuid] if other_uuid
+        call&.handle_media
       end
 
       def handle_channel_hangup(event)
