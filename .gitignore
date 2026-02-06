@@ -1,1 +1,10 @@
 Gemfile.lock
+
+/.bundle/
+/doc/
+/log/*.log
+/pkg/
+/tmp/
+
+switest-*.gem
+mise.toml
