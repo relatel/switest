@@ -16,12 +16,12 @@ class Switest2::ESL::ClientTest < Minitest::Test
     assert_match(/origination_uuid=#{call.id}/, command)
   end
 
-  def test_dial_sets_caller_id_number_and_name
+  def test_dial_sets_caller_id_number_from_plain_value
     @client.dial(to: "sofia/gateway/test/123", from: "+4512345678")
 
     command = @connection.commands_sent.find { |c| c.include?("originate") }
     assert_match(/origination_caller_id_number=\+4512345678/, command)
-    assert_match(/origination_caller_id_name=\+4512345678/, command)
+    refute_match(/origination_caller_id_name/, command)
   end
 
   def test_dial_without_from_omits_caller_id
@@ -62,29 +62,45 @@ class Switest2::ESL::ClientTest < Minitest::Test
     assert_equal call, @client.calls[call.id]
   end
 
-  def test_dial_escapes_from_with_spaces
+  def test_dial_from_without_brackets_sets_number_only
     @client.dial(to: "sofia/gateway/test/123", from: "John Doe")
 
     command = @connection.commands_sent.find { |c| c.include?("originate") }
     assert_match(/origination_caller_id_number='John Doe'/, command)
-    assert_match(/origination_caller_id_name='John Doe'/, command)
+    refute_match(/origination_caller_id_name/, command)
   end
 
-  def test_dial_escapes_from_with_angle_brackets
+  def test_dial_parses_display_name_format
     @client.dial(to: "sofia/gateway/test/123", from: "Display Name <sip:user@host>")
 
     command = @connection.commands_sent.find { |c| c.include?("originate") }
-    # Should be wrapped in single quotes due to special characters
-    assert_match(/origination_caller_id_number='Display Name <sip:user@host>'/, command)
+    assert_match(/origination_caller_id_number=sip:user@host/, command)
+    assert_match(/origination_caller_id_name='Display Name'/, command)
   end
 
-  def test_dial_escapes_from_with_commas
+  def test_dial_parses_number_only_in_brackets
+    @client.dial(to: "sofia/gateway/test/123", from: "<+4512345678>")
+
+    command = @connection.commands_sent.find { |c| c.include?("originate") }
+    assert_match(/origination_caller_id_number=\+4512345678/, command)
+    refute_match(/origination_caller_id_name/, command)
+  end
+
+  def test_dial_parses_name_with_empty_brackets
+    @client.dial(to: "sofia/gateway/test/123", from: "Jane Smith <>")
+
+    command = @connection.commands_sent.find { |c| c.include?("originate") }
+    refute_match(/origination_caller_id_number/, command)
+    assert_match(/origination_caller_id_name='Jane Smith'/, command)
+  end
+
+  def test_dial_from_with_commas_no_brackets
     @client.dial(to: "sofia/gateway/test/123", from: "Doe, John")
 
     command = @connection.commands_sent.find { |c| c.include?("originate") }
-    # Should use ^^<delim> syntax for commas in regular variables
-    # The comma is replaced with the delimiter (e.g., :)
+    # No brackets, so entire value is the number
     assert_match(/origination_caller_id_number=\^\^.Doe. John/, command)
+    refute_match(/origination_caller_id_name/, command)
   end
 
   def test_dial_escapes_header_with_commas
@@ -116,6 +132,7 @@ class Switest2::ESL::ClientTest < Minitest::Test
     # Simple value should NOT have quotes
     assert_match(/origination_caller_id_number=\+4512345678/, command)
     refute_match(/origination_caller_id_number='/, command)
+    refute_match(/origination_caller_id_name/, command)
   end
 
   def test_dtmf_events_are_isolated_by_uuid

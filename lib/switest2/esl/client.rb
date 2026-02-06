@@ -57,8 +57,9 @@ module Switest2
         # Build channel variables
         vars = { origination_uuid: uuid }
         if from
-          vars[:origination_caller_id_number] = from
-          vars[:origination_caller_id_name] = from
+          cid_number, cid_name = parse_caller_id(from)
+          vars[:origination_caller_id_number] = cid_number if cid_number
+          vars[:origination_caller_id_name] = cid_name if cid_name
         end
 
         var_string = Escaper.build_var_string(vars, headers)
@@ -192,6 +193,24 @@ module Switest2
 
         digit = event["DTMF-Digit"]
         call.handle_dtmf(digit) if digit
+      end
+
+      # Parse a caller ID string into [number, name].
+      # Supports the display-name format: "Name <number>"
+      # If no angle brackets, the whole string is treated as the number.
+      def parse_caller_id(from)
+        if from.match?(/\A\s*\z/)
+          [nil, nil]
+        elsif (m = from.match(/(?<name>.*)<(?<number>.*)>/))
+          name = m[:name].strip
+          number = m[:number].strip
+          [
+            number.empty? ? nil : number,
+            name.empty? ? nil : name
+          ]
+        else
+          [from, nil]
+        end
       end
 
       def fire_offer(call)
