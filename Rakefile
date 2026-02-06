@@ -1,7 +1,8 @@
-#!/usr/bin/env rake
 # frozen_string_literal: true
+require "bundler/setup"
 
 require "minitest/test_task"
+require "bundler/gem_tasks"
 
 Minitest::TestTask.create(:test) do |t|
   t.libs << "lib" << "test"

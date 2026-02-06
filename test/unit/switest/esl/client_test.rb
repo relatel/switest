@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../../../switest_test_helper"
+require_relative "../../../test_helper"
 
 class Switest::ESL::ClientTest < Minitest::Test
   def setup

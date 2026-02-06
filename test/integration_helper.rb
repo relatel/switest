@@ -1,9 +1,5 @@
 # frozen_string_literal: true
 
-$LOAD_PATH.unshift("lib")
-
-require "bundler/setup" if defined?(Bundler)
-require "minitest"
 require "switest"
 
 # Configure FreeSWITCH connection from environment

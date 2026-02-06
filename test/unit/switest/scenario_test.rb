@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../../switest_test_helper"
+require_relative "../../test_helper"
 
 # Test scenario assertions directly in Minitest context
 class Switest::ScenarioTest < Minitest::Test

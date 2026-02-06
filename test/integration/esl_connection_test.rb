@@ -5,7 +5,7 @@
 # Run with:
 #   rake integration
 
-require_relative "../integration_test_helper"
+require_relative "../integration_helper"
 
 class ESLConnectionIntegrationTest < Minitest::Test
   def setup
