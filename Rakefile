@@ -22,4 +22,9 @@ Minitest::TestTask.create(:all) do |t|
   t.warning = false
 end
 
+task :version do
+  require_relative "lib/switest2/version"
+  print Switest2::VERSION
+end
+
 task default: :test
