@@ -377,6 +377,7 @@ class Switest2::ESL::CallTest < Minitest::Test
 
     command = @connection.commands_sent.last
     assert_match(/execute-app-name: playback/, command)
+    assert_match(%r{execute-app-arg: tone_stream://d=200;123}, command)
     assert_match(/event-lock: true/, command)
   end
 
@@ -391,6 +392,7 @@ class Switest2::ESL::CallTest < Minitest::Test
 
     command = @connection.commands_sent.last
     assert_match(/execute-app-name: playback/, command)
+    assert_match(%r{execute-app-arg: tone_stream://d=200;123}, command)
     refute_match(/event-lock/, command)
   end
 

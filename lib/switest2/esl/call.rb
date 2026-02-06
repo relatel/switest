@@ -97,9 +97,7 @@ module Switest2
       end
 
       def send_dtmf(digits, wait: true)
-        # Play DTMF tones (inband)
-        tones = digits.chars.map { |d| dtmf_tone(d) }.join(";")
-        sendmsg("execute", "playback", "tone_stream://#{tones}", event_lock: wait)
+        play_audio("tone_stream://d=200;#{digits}", wait: wait)
       end
 
       def receive_dtmf(count: 1, timeout: 5)
@@ -197,18 +195,6 @@ module Switest2
         msg << "execute-app-arg: #{arg}\n" if arg
         msg << "event-lock: true\n" if event_lock
         @connection.send_command(msg.chomp)
-      end
-
-      def dtmf_tone(digit)
-        # DTMF tone frequencies
-        freqs = {
-          "1" => "697,1209", "2" => "697,1336", "3" => "697,1477",
-          "4" => "770,1209", "5" => "770,1336", "6" => "770,1477",
-          "7" => "852,1209", "8" => "852,1336", "9" => "852,1477",
-          "0" => "941,1336", "*" => "941,1209", "#" => "941,1477"
-        }
-        freq = freqs[digit] || "697,1209"
-        "%(100,100,#{freq})"
       end
 
       def fire_callbacks(type)
