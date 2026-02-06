@@ -1,7 +1,7 @@
 source "https://rubygems.org"
 
-gemspec
+gemspec name: "switest"
 
 group :test do
-  gem "testrbl"
+  gem "rake"
 end

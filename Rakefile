@@ -1,11 +1,30 @@
 #!/usr/bin/env rake
+# frozen_string_literal: true
 
-require 'rake/testtask'
+require "minitest/test_task"
 
-Rake::TestTask.new do |t|
-  t.libs << "test"
-  t.test_files = Dir.glob('test/**/*_test.rb')
+Minitest::TestTask.create(:test) do |t|
+  t.libs << "lib" << "test"
+  t.test_globs = ["test/unit/switest/**/*_test.rb"]
   t.warning = false
-end 
+end
 
-task(default: :test)
+Minitest::TestTask.create(:integration) do |t|
+  t.libs << "lib" << "test"
+  t.test_globs = ["test/integration/**/*_test.rb"]
+  t.warning = false
+  t.verbose = true
+end
+
+Minitest::TestTask.create(:all) do |t|
+  t.libs << "lib" << "test"
+  t.test_globs = ["test/unit/switest/**/*_test.rb", "test/integration/**/*_test.rb"]
+  t.warning = false
+end
+
+task :version do
+  require_relative "lib/switest/version"
+  print Switest::VERSION
+end
+
+task default: :test

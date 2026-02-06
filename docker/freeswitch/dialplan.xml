@@ -1,0 +1,50 @@
+<include>
+  <!-- Park calls to "park" destination -->
+  <extension name="switest-park">
+    <condition field="destination_number" expression="^park$">
+      <action application="set" data="hangup_after_bridge=true"/>
+      <action application="park"/>
+    </condition>
+  </extension>
+
+  <!-- Answer and echo for "echo" destination -->
+  <extension name="switest-echo">
+    <condition field="destination_number" expression="^echo$">
+      <action application="answer"/>
+      <action application="echo"/>
+    </condition>
+  </extension>
+
+  <!-- Send DTMF digits for testing -->
+  <extension name="switest-dtmf">
+    <condition field="destination_number" expression="^dtmf_(\d+)$">
+      <action application="answer"/>
+      <action application="sleep" data="500"/>
+      <action application="send_dtmf" data="$1"/>
+      <action application="sleep" data="3000"/>
+    </condition>
+  </extension>
+
+  <!-- Inbound test with inband DTMF detection enabled -->
+  <extension name="switest-dtmf-detect">
+    <condition field="destination_number" expression="^dtmf_wait_test$">
+      <action application="start_dtmf"/>
+      <action application="park"/>
+    </condition>
+  </extension>
+
+  <!-- Inbound test destinations - park for agent control -->
+  <extension name="switest-inbound-test">
+    <condition field="destination_number" expression="^(inbound_test|reject_test)$">
+      <action application="park"/>
+    </condition>
+  </extension>
+
+  <!-- Default: park anything else -->
+  <extension name="switest-default">
+    <condition field="destination_number" expression="^(.*)$">
+      <action application="set" data="hangup_after_bridge=true"/>
+      <action application="park"/>
+    </condition>
+  </extension>
+</include>

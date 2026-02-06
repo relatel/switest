@@ -1,102 +1,128 @@
-# encoding: utf-8
+# frozen_string_literal: true
 
 module Switest
   class Agent
-    include Celluloid
-    include HasGuardedHandlers
+    class << self
+      # Shared client for all agents in a test
+      attr_accessor :client, :events
 
-    attr_accessor :call
+      def setup(client, events)
+        @client = client
+        @events = events
+      end
 
-    def self.dial(*args)
-      agent = Agent.new
-      agent.dial(*args)
-      agent
+      def teardown
+        @client = nil
+        @events = nil
+      end
+
+      def dial(destination, from: nil, timeout: nil, headers: {})
+        raise "Agent.setup not called" unless @client
+
+        call = @client.dial(to: destination, from: from, timeout: timeout, headers: headers)
+        new(call)
+      end
+
+      def listen_for_call(guards = {})
+        raise "Agent.setup not called" unless @client
+
+        agent = new(nil)
+
+        # Register a one-time handler for matching inbound calls
+        @events.once(:offer, guards) do |data|
+          agent.instance_variable_set(:@call, data[:call])
+        end
+
+        agent
+      end
     end
 
-    def self.listen_for_call(*args)
-      agent = Agent.new
-      agent.listen_for_call(*args)
-      agent
+    attr_reader :call
+
+    def initialize(call)
+      @call = call
     end
 
     def call?
-      !!@call
+      !@call.nil?
     end
 
-    def dial(*args)
-      @call = ::Adhearsion::OutboundCall.originate(*args)
+    def answer(wait: 5)
+      raise "No call to answer" unless @call
+      @call.answer(wait: wait)
     end
 
-    def answer(*args)
-      @call.answer(*args)
+    def hangup(wait: 5)
+      raise "No call to hangup" unless @call
+      @call.hangup(wait: wait)
     end
 
-    def hangup(*args)
-      @call.hangup(*args)
+    def reject(reason = :decline)
+      raise "No call to reject" unless @call
+      @call.reject(reason)
     end
 
-    def reject(*args)
-      @call.reject(*args)
+    def send_dtmf(digits)
+      raise "No call for DTMF" unless @call
+      @call.send_dtmf(digits)
     end
 
-    def send_dtmf(dtmf)
-      controller = ::Adhearsion::CallController.new(@call) do
-        play_audio("tone_stream://d=200;#{dtmf}")
-      end
-      controller.exec
-    end
-
-    def receive_dtmf(*args)
-      input = nil
-      controller = ::Adhearsion::CallController.new(@call) do
-        input = ask(*args)
-      end
-      controller.exec
-      input.utterance
-    end
-
-    def listen_for_call(conditions={})
-      Switest.events.register_tmp_handler(:inbound_call, conditions) {|call|
-        @call = call
-        trigger_handler(:call, call)
-      }
+    def receive_dtmf(count: 1, timeout: 5)
+      raise "No call for DTMF" unless @call
+      @call.receive_dtmf(count: count, timeout: timeout)
     end
 
     def wait_for_call(timeout: 5)
-      return if @call
-      wait(timeout) {|blocker|
-        register_tmp_handler(:call) { blocker.signal }
-      }
+      deadline = Time.now + timeout
+      while Time.now < deadline
+        return true if @call
+        sleep 0.1
+      end
+      false
     end
 
     def wait_for_answer(timeout: 5)
-      # Between Adhearsion 3.0.0.rc1 and the next version (not released as of this
-      # writing), answer_time was added, and the semantics of start_time was changed.
-      # https://github.com/adhearsion/adhearsion/pull/603
-      if @call.respond_to?(:answer_time)
-        return if @call.answer_time
-      else
-        return if @call.start_time
-      end
-      wait(timeout) {|blocker|
-        @call.on_answer { blocker.signal }
-      }
+      raise "No call to wait for" unless @call
+      @call.wait_for_answer(timeout: timeout)
+    end
+
+    def wait_for_bridge(timeout: 5)
+      raise "No call to wait for" unless @call
+      @call.wait_for_bridge(timeout: timeout)
     end
 
     def wait_for_end(timeout: 5)
-      return if @call.end_reason
-      wait(timeout) {|blocker|
-        @call.on_end { blocker.signal }
-      }
+      raise "No call to wait for" unless @call
+      @call.wait_for_end(timeout: timeout)
     end
 
-    private
+    # Delegate state queries to call
+    def alive?
+      @call&.alive? || false
+    end
 
-    def wait(timeout)
-      blocker = Celluloid::Condition.new
-      timer = after(timeout) { blocker.signal }
-      yield(blocker)
-      blocker.wait
+    def active?
+      @call&.active? || false
+    end
+
+    def answered?
+      @call&.answered? || false
+    end
+
+    def ended?
+      @call&.ended? || false
+    end
+
+    def start_time
+      @call&.start_time
+    end
+
+    def answer_time
+      @call&.answer_time
+    end
+
+    def end_reason
+      @call&.end_reason
     end
   end
 end

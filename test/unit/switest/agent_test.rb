@@ -1,98 +1,164 @@
-# encoding: utf-8
+# frozen_string_literal: true
 
-require "test_helper"
+require_relative "../../switest_test_helper"
 
 class Switest::AgentTest < Minitest::Test
   def setup
-    super
-    Switest.reset
+    @events = Switest::Events.new
+    @connection = Switest::ESL::MockConnection.new
+    @client = Switest::ESL::Client.new(@connection)
+    Switest::Agent.setup(@client, @events)
+  end
+
+  def teardown
+    Switest::Agent.teardown
   end
 
   def test_listen_for_call_without_conditions
-    agent = Agent.new
-    agent.listen_for_call
+    agent = Switest::Agent.listen_for_call
 
-    call = ::Adhearsion::Call.new
-    Switest.events.trigger_handler(:inbound_call, call)
+    call = Switest::ESL::Call.new(
+      id: "test-uuid",
+      connection: @connection,
+      direction: :inbound,
+      to: "71999999",
+      from: "12345"
+    )
+    @events.emit(:offer, { to: call.to, from: call.from, call: call })
 
     assert_equal call, agent.call
   end
 
   def test_with_conditions_matching
-    agent = Agent.new
-    agent.listen_for_call(to: /71999999/)
+    agent = Switest::Agent.listen_for_call(to: /71999999/)
 
-    offer = ::Adhearsion::Event::Offer.new(to: "71999999")
-    call = ::Adhearsion::Call.new(offer)
-    Switest.events.trigger_handler(:inbound_call, call)
+    call = Switest::ESL::Call.new(
+      id: "test-uuid",
+      connection: @connection,
+      direction: :inbound,
+      to: "71999999",
+      from: "12345"
+    )
+    @events.emit(:offer, { to: call.to, from: call.from, call: call })
 
     assert_equal call, agent.call
   end
 
   def test_with_conditions_not_matching
-    agent = Agent.new
-    agent.listen_for_call(to: /71999999/)
+    agent = Switest::Agent.listen_for_call(to: /71999999/)
 
-    offer = ::Adhearsion::Event::Offer.new(to: "22334455")
-    call = ::Adhearsion::Call.new(offer)
-    Switest.events.trigger_handler(:inbound_call, call)
+    call = Switest::ESL::Call.new(
+      id: "test-uuid",
+      connection: @connection,
+      direction: :inbound,
+      to: "22334455",
+      from: "12345"
+    )
+    @events.emit(:offer, { to: call.to, from: call.from, call: call })
 
     assert_nil agent.call
   end
 
   def test_wait_for_call_success
-    agent = Agent.new
-    agent.listen_for_call(to: /71999999/)
+    agent = Switest::Agent.listen_for_call(to: /71999999/)
 
-    offer = ::Adhearsion::Event::Offer.new(to: "71999999")
-    call = ::Adhearsion::Call.new(offer)
+    call = Switest::ESL::Call.new(
+      id: "test-uuid",
+      connection: @connection,
+      direction: :inbound,
+      to: "71999999",
+      from: "12345"
+    )
 
     Thread.new {
-      sleep 1
-      Switest.events.trigger_handler(:inbound_call, call)
+      sleep 0.5
+      @events.emit(:offer, { to: call.to, from: call.from, call: call })
     }
 
     Timeout.timeout(2) do
-      agent.wait_for_call
+      result = agent.wait_for_call(timeout: 2)
+      assert result
       assert_equal call, agent.call
     end
   end
 
   def test_wait_for_call_timeout
-    agent = Agent.new
-    agent.listen_for_call(to: /71999999/)
+    agent = Switest::Agent.listen_for_call(to: /71999999/)
 
     Timeout.timeout(2) do
-      agent.wait_for_call(timeout: 1)
+      result = agent.wait_for_call(timeout: 0.5)
+      refute result
       assert_nil agent.call
     end
   end
 
   def test_wait_for_answer
-    agent = Agent.new
-    agent.call = ::Adhearsion::OutboundCall.new
+    call = Switest::ESL::Call.new(
+      id: "test-uuid",
+      connection: @connection,
+      direction: :outbound,
+      to: "71999999"
+    )
+    agent = Switest::Agent.new(call)
 
     Thread.new {
-      sleep 1
-      agent.call << ::Adhearsion::Event::Answered.new
+      sleep 0.5
+      call.handle_answer
     }
 
     Timeout.timeout(2) do
-      agent.wait_for_answer
+      result = agent.wait_for_answer(timeout: 2)
+      assert result
+      assert agent.answered?
     end
   end
 
   def test_wait_for_end
-    agent = Agent.new
-    agent.call = ::Adhearsion::OutboundCall.new
+    call = Switest::ESL::Call.new(
+      id: "test-uuid",
+      connection: @connection,
+      direction: :outbound,
+      to: "71999999"
+    )
+    agent = Switest::Agent.new(call)
 
     Thread.new {
-      sleep 1
-      agent.call << ::Adhearsion::Event::End.new
+      sleep 0.5
+      call.handle_hangup("NORMAL_CLEARING")
     }
 
     Timeout.timeout(2) do
-      agent.wait_for_end
+      result = agent.wait_for_end(timeout: 2)
+      assert result
+      assert agent.ended?
     end
+  end
+
+  def test_answer_sends_command
+    call = Switest::ESL::Call.new(
+      id: "test-uuid",
+      connection: @connection,
+      direction: :inbound,
+      to: "71999999"
+    )
+    agent = Switest::Agent.new(call)
+
+    agent.answer(wait: false)
+
+    assert @connection.commands_sent.any? { |cmd| cmd.include?("answer") }
+  end
+
+  def test_hangup_sends_command
+    call = Switest::ESL::Call.new(
+      id: "test-uuid",
+      connection: @connection,
+      direction: :inbound,
+      to: "71999999"
+    )
+    agent = Switest::Agent.new(call)
+
+    agent.hangup(wait: false)
+
+    assert @connection.commands_sent.any? { |cmd| cmd.include?("hangup") }
   end
 end
