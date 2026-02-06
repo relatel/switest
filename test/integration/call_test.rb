@@ -168,7 +168,7 @@ class CallIntegrationTest < Switest2::Scenario
     assert bob.call.inbound?, "Bob's call should be inbound"
 
     # Bob answers (wait for answer to complete)
-    bob.answer(wait: true)
+    bob.answer
 
     # Both should now be connected
     assert alice.wait_for_answer(timeout: 5), "Alice should see answer"
@@ -227,7 +227,7 @@ class CallIntegrationTest < Switest2::Scenario
     alice.wait_for_answer(timeout: 5)
     assert alice.answered?, "Call should be answered"
 
-    alice.hangup(wait: 5)
+    alice.hangup
     assert alice.ended?, "Call should be ended"
   end
 
@@ -238,7 +238,7 @@ class CallIntegrationTest < Switest2::Scenario
     alice.wait_for_answer(timeout: 5)
     assert alice.answered?, "Call should be answered"
 
-    alice.hangup(wait: 5)
+    alice.hangup
     assert alice.ended?, "Call should be ended"
   end
 
@@ -249,7 +249,7 @@ class CallIntegrationTest < Switest2::Scenario
     alice.wait_for_answer(timeout: 5)
     assert alice.answered?, "Call should be answered"
 
-    alice.hangup(wait: 5)
+    alice.hangup
     assert alice.ended?, "Call should be ended"
   end
 
@@ -260,7 +260,7 @@ class CallIntegrationTest < Switest2::Scenario
     alice.wait_for_answer(timeout: 5)
     assert alice.answered?, "Call should be answered"
 
-    alice.hangup(wait: 5)
+    alice.hangup
     assert alice.ended?, "Call should be ended"
   end
 
@@ -271,7 +271,7 @@ class CallIntegrationTest < Switest2::Scenario
     alice.wait_for_answer(timeout: 5)
     assert alice.answered?, "Call should be answered"
 
-    alice.hangup(wait: 5)
+    alice.hangup
     assert alice.ended?, "Call should be ended"
   end
 
@@ -282,7 +282,7 @@ class CallIntegrationTest < Switest2::Scenario
     alice.wait_for_answer(timeout: 5)
     assert alice.answered?, "Call should be answered"
 
-    alice.hangup(wait: 5)
+    alice.hangup
     assert alice.ended?, "Call should be ended"
   end
 
@@ -314,8 +314,8 @@ class CallIntegrationTest < Switest2::Scenario
     assert_equal "222", bob_digits, "Bob should receive his own DTMF digits (222)"
 
     # Cleanup
-    alice.hangup(wait: 5)
-    bob.hangup(wait: 5)
+    alice.hangup
+    bob.hangup
   end
 
   def test_sequential_dtmf_calls_are_isolated
@@ -327,14 +327,14 @@ class CallIntegrationTest < Switest2::Scenario
     alice.wait_for_answer(timeout: 5)
     digits1 = alice.call.receive_dtmf(count: 3, timeout: 5)
     assert_equal "123", digits1, "First call should receive 123"
-    alice.hangup(wait: 5)
+    alice.hangup
 
     # Second call: receive DTMF 456
     bob = Agent.dial("loopback/dtmf_456/public")
     bob.wait_for_answer(timeout: 5)
     digits2 = bob.call.receive_dtmf(count: 3, timeout: 5)
     assert_equal "456", digits2, "Second call should receive 456 (not 123 from previous call)"
-    bob.hangup(wait: 5)
+    bob.hangup
   end
 
   def test_hangup_all_ends_multiple_calls
@@ -385,7 +385,7 @@ class CallIntegrationTest < Switest2::Scenario
     alice = Agent.dial("loopback/dtmf_wait_test/public")
 
     assert bob.wait_for_call(timeout: 5), "Bob should receive call"
-    bob.answer(wait: true)
+    bob.answer
     assert alice.wait_for_answer(timeout: 5), "Alice should be answered"
     alice.wait_for_bridge(timeout: 5)
 
@@ -395,7 +395,7 @@ class CallIntegrationTest < Switest2::Scenario
     digits = bob.call.receive_dtmf(count: 3, timeout: 5)
     assert_equal "789", digits, "Bob should receive DTMF digits from Alice"
 
-    alice.hangup(wait: 5)
+    alice.hangup
     bob.wait_for_end(timeout: 5)
   end
 
@@ -406,7 +406,7 @@ class CallIntegrationTest < Switest2::Scenario
     # Wait for bridge so we get some duration
     alice.wait_for_bridge(timeout: 5)
 
-    alice.hangup(wait: 5)
+    alice.hangup
     assert alice.ended?, "Alice should be ended"
 
     # Headers from CHANNEL_HANGUP_COMPLETE should be merged

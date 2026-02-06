@@ -47,12 +47,12 @@ module Switest2
       !@call.nil?
     end
 
-    def answer(wait: false)
+    def answer(wait: 5)
       raise "No call to answer" unless @call
       @call.answer(wait: wait)
     end
 
-    def hangup(wait: false)
+    def hangup(wait: 5)
       raise "No call to hangup" unless @call
       @call.hangup(wait: wait)
     end

@@ -63,33 +63,31 @@ module Switest2
       end
 
       # Actions
-      def answer(wait: false)
+      def answer(wait: 5)
         return unless @state == :offered && inbound?
         sendmsg("execute", "answer")
         return unless wait
-        timeout = wait == true ? 5 : wait
-        wait_for_answer(timeout: timeout)
+        wait_for_answer(timeout: wait)
       end
 
-      def hangup(cause = "NORMAL_CLEARING", wait: false)
+      def hangup(cause = "NORMAL_CLEARING", wait: 5)
         return if ended?
         msg = +"sendmsg #{@id}\n"
         msg << "call-command: hangup\n"
         msg << "hangup-cause: #{cause}"
         @connection.send_command(msg)
         return unless wait
-        timeout = wait == true ? 5 : wait
-        wait_for_end(timeout: timeout)
+        wait_for_end(timeout: wait)
       end
 
-      def reject(reason = :decline)
+      def reject(reason = :decline, wait: 5)
         return unless @state == :offered && inbound?
         cause = case reason
                 when :busy then "USER_BUSY"
                 when :decline then "CALL_REJECTED"
                 else "CALL_REJECTED"
                 end
-        hangup(cause)
+        hangup(cause, wait: wait)
       end
 
       def play_audio(url, wait: true)

@@ -33,7 +33,7 @@ class ScenarioIntegrationTest < Switest2::Scenario
     agent.wait_for_bridge(timeout: 5)
 
     # Clean up - wait for hangup to complete
-    agent.hangup(wait: 5)
+    agent.hangup
   end
 
   def test_wait_for_call_timeout
