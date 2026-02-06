@@ -16,10 +16,10 @@ module Switest2
         @events = nil
       end
 
-      def dial(destination, from: nil, headers: {})
+      def dial(destination, from: nil, timeout: nil, headers: {})
         raise "Agent.setup not called" unless @client
 
-        call = @client.dial(to: destination, from: from, headers: headers)
+        call = @client.dial(to: destination, from: from, timeout: timeout, headers: headers)
         new(call)
       end
 
