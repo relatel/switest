@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-$LOAD_PATH.unshift("lib")
+require "bundler/setup"
 
-require "bundler/setup" if defined?(Bundler)
 require "minitest"
-require "timeout"
+require "minitest/autorun"
+
 require "switest2"
 
 # Mock ESL Connection for unit tests

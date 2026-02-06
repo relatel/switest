@@ -15,10 +15,10 @@ services:
       retries: 5
 
   test:
-    image: ruby:4.0
-    working_dir: /app
+    build: .
     volumes:
       - .:/app
+      - bundle:/bundle
     depends_on:
       freeswitch:
         condition: service_healthy
@@ -26,5 +26,6 @@ services:
       FREESWITCH_HOST: freeswitch
       FREESWITCH_PORT: 8021
       FREESWITCH_PASSWORD: ClueCon
-    command: >
-      sh -c "bundle install --quiet && bundle exec rake integration"
+
+volumes:
+  bundle:
