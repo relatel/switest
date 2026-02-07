@@ -16,9 +16,6 @@ class CallIntegrationTest < Switest::Scenario
     assert alice.call?, "Agent should have a call after dial"
     assert alice.call.outbound?, "Call should be outbound"
 
-    # Wait for the loopback legs to bridge
-    alice.wait_for_bridge(timeout: 5)
-
     # Hangup
     alice.hangup
 
@@ -34,9 +31,7 @@ class CallIntegrationTest < Switest::Scenario
     assert alice.call?, "Agent should have a call"
 
     # Wait for the call to be answered
-    answered = alice.wait_for_answer(timeout: 5)
-    assert answered, "Call should be answered"
-    assert alice.answered?, "Agent should show call as answered"
+    assert_answered(alice)
 
     # Clean up
     alice.hangup
@@ -163,15 +158,14 @@ class CallIntegrationTest < Switest::Scenario
     assert alice.call?, "Alice should have outbound call"
 
     # Bob should receive the inbound call (B-leg)
-    assert bob.wait_for_call(timeout: 5), "Bob should receive inbound call"
-    assert bob.call?, "Bob should have a call"
+    assert_call(bob)
     assert bob.call.inbound?, "Bob's call should be inbound"
 
     # Bob answers (wait for answer to complete)
     bob.answer
 
     # Both should now be connected
-    assert alice.wait_for_answer(timeout: 5), "Alice should see answer"
+    assert_answered(alice)
     assert bob.answered?, "Bob should be answered"
 
     # Cleanup
@@ -185,7 +179,7 @@ class CallIntegrationTest < Switest::Scenario
 
     alice = Agent.dial("loopback/reject_test/public")
 
-    assert bob.wait_for_call(timeout: 5), "Bob should receive call"
+    assert_call(bob)
 
     # Bob rejects the call
     bob.reject(:busy)
@@ -209,8 +203,8 @@ class CallIntegrationTest < Switest::Scenario
     refute_equal alice.call.id, bob.call.id, "Calls should have different IDs"
 
     # Wait for both to answer (longer timeout for CI)
-    assert alice.wait_for_answer(timeout: 10), "Alice should be answered"
-    assert bob.wait_for_answer(timeout: 10), "Bob should be answered"
+    assert_answered(alice, timeout: 10)
+    assert_answered(bob, timeout: 10)
 
     # Hangup both (wait for completion)
     alice.hangup(wait: 15)
@@ -303,8 +297,8 @@ class CallIntegrationTest < Switest::Scenario
     refute_equal alice.call.id, bob.call.id, "Calls should have different IDs"
 
     # Wait for both to answer
-    assert alice.wait_for_answer(timeout: 5), "Alice should be answered"
-    assert bob.wait_for_answer(timeout: 5), "Bob should be answered"
+    assert_answered(alice)
+    assert_answered(bob)
 
     # Each call should receive its own DTMF digits
     alice_digits = alice.call.receive_dtmf(count: 3, timeout: 5)
@@ -344,9 +338,9 @@ class CallIntegrationTest < Switest::Scenario
     charlie = Agent.dial("loopback/echo/public")
 
     # Wait for all to answer
-    assert alice.wait_for_answer(timeout: 5), "Alice should be answered"
-    assert bob.wait_for_answer(timeout: 5), "Bob should be answered"
-    assert charlie.wait_for_answer(timeout: 5), "Charlie should be answered"
+    assert_answered(alice)
+    assert_answered(bob)
+    assert_answered(charlie)
 
     # All calls should be active
     assert alice.active?, "Alice should be active"
@@ -369,7 +363,7 @@ class CallIntegrationTest < Switest::Scenario
 
   def test_hangup_all_with_custom_cause
     alice = Agent.dial("loopback/echo/public")
-    assert alice.wait_for_answer(timeout: 5), "Alice should be answered"
+    assert_answered(alice)
 
     # Hangup with custom cause
     hangup_all(cause: "USER_BUSY")
@@ -384,10 +378,9 @@ class CallIntegrationTest < Switest::Scenario
 
     alice = Agent.dial("loopback/dtmf_wait_test/public")
 
-    assert bob.wait_for_call(timeout: 5), "Bob should receive call"
+    assert_call(bob)
     bob.answer
-    assert alice.wait_for_answer(timeout: 5), "Alice should be answered"
-    alice.wait_for_bridge(timeout: 5)
+    assert_answered(alice)
 
     # Alice plays DTMF tones — B-leg's start_dtmf should detect them
     assert_dtmf(bob, "789") do
@@ -398,12 +391,23 @@ class CallIntegrationTest < Switest::Scenario
     bob.wait_for_end(timeout: 5)
   end
 
+  def test_bridge_via_dialplan
+    # Listen for the loopback B-leg that will hit the bridge_echo dialplan
+    bob = Agent.listen_for_call(to: /bridge_echo/)
+
+    # The B-leg answers and bridges to echo via the dialplan
+    alice = Agent.dial("loopback/bridge_echo/public")
+
+    assert_call(bob)
+    assert_bridged(bob)
+
+    alice.hangup
+    bob.wait_for_end
+  end
+
   def test_hangup_headers_are_available_after_call_ends
     alice = Agent.dial("loopback/echo/public")
-    assert alice.wait_for_answer(timeout: 5), "Alice should be answered"
-
-    # Wait for bridge so we get some duration
-    alice.wait_for_bridge(timeout: 5)
+    assert_answered(alice)
 
     alice.hangup
     assert alice.ended?, "Alice should be ended"

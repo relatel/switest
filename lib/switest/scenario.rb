@@ -49,6 +49,18 @@ module Switest
       refute agent.call?, "Expected agent to not have received a call"
     end
 
+    def assert_answered(agent, timeout: 5)
+      assert agent.call?, "Agent has no call"
+      success = agent.wait_for_answer(timeout: timeout)
+      assert success, "Expected call to be answered within #{timeout} seconds"
+    end
+
+    def assert_bridged(agent, timeout: 5)
+      assert agent.call?, "Agent has no call"
+      success = agent.wait_for_bridge(timeout: timeout)
+      assert success, "Expected call to be bridged within #{timeout} seconds"
+    end
+
     def assert_hungup(agent, timeout: 5)
       assert agent.call?, "Agent has no call"
       success = agent.wait_for_end(timeout: timeout)
