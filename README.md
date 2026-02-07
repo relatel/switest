@@ -168,11 +168,13 @@ agent.end_reason  # e.g. "NORMAL_CLEARING"
 `Switest::Scenario` provides these assertions:
 
 ```ruby
-assert_call(agent, timeout: 5)         # Agent receives a call
-assert_no_call(agent, timeout: 2)      # Agent does NOT receive a call
-assert_hungup(agent, timeout: 5)       # Call has ended
-assert_not_hungup(agent, timeout: 2)   # Call is still active
-assert_dtmf(agent, "123", timeout: 5)              # Agent receives expected DTMF digits
+assert_call(agent, timeout: 5)                       # Agent receives a call
+assert_no_call(agent, timeout: 2)                    # Agent does NOT receive a call
+assert_answered(agent, timeout: 5)                   # Call has been answered
+assert_bridged(agent, timeout: 5)                    # Call has been bridged
+assert_hungup(agent, timeout: 5)                     # Call has ended
+assert_not_hungup(agent, timeout: 2)                 # Call is still active
+assert_dtmf(agent, "123", timeout: 5)                # Agent receives expected DTMF digits
 assert_dtmf(agent, "123") { other.send_dtmf("123") } # With block: flushes stale DTMF first
 ```
 

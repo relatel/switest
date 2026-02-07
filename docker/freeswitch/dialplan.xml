@@ -25,6 +25,14 @@
     </condition>
   </extension>
 
+  <!-- Answer and bridge to echo (generates CHANNEL_BRIDGE events) -->
+  <extension name="switest-bridge-echo">
+    <condition field="destination_number" expression="^bridge_echo$">
+      <action application="answer"/>
+      <action application="bridge" data="loopback/echo/public"/>
+    </condition>
+  </extension>
+
   <!-- Inbound test with inband DTMF detection enabled -->
   <extension name="switest-dtmf-detect">
     <condition field="destination_number" expression="^dtmf_wait_test$">
