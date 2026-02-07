@@ -98,6 +98,10 @@ module Switest
         play_audio("tone_stream://d=200;w=250;#{digits}", wait: wait)
       end
 
+      def flush_dtmf
+        @dtmf_buffer.clear
+      end
+
       def receive_dtmf(count: 1, timeout: 5)
         digits = String.new
         deadline = Time.now + timeout

@@ -172,7 +172,8 @@ assert_call(agent, timeout: 5)         # Agent receives a call
 assert_no_call(agent, timeout: 2)      # Agent does NOT receive a call
 assert_hungup(agent, timeout: 5)       # Call has ended
 assert_not_hungup(agent, timeout: 2)   # Call is still active
-assert_dtmf(agent, "123", timeout: 5)  # Agent receives expected DTMF digits
+assert_dtmf(agent, "123", timeout: 5)              # Agent receives expected DTMF digits
+assert_dtmf(agent, "123") { other.send_dtmf("123") } # With block: flushes stale DTMF first
 ```
 
 The `hangup_all` helper ends all active calls (useful before CDR assertions):
@@ -228,7 +229,22 @@ digits = alice.receive_dtmf(count: 4, timeout: 5)
 assert_equal "1234", digits
 ```
 
-Or use the assertion helper:
+Or use the assertion helper with a block to avoid stale DTMF issues.
+The block is executed after a configurable delay (`after:`, default 1s)
+while the assertion is already listening:
+
+```ruby
+assert_dtmf(bob, "1234") do
+  alice.send_dtmf("1234")
+end
+
+# With custom delay and timeout:
+assert_dtmf(bob, "1234", timeout: 10, after: 0.5) do
+  alice.send_dtmf("1234")
+end
+```
+
+Without a block it works as a simple wait (backward compatible):
 
 ```ruby
 assert_dtmf(alice, "1234", timeout: 5)

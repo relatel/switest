@@ -390,10 +390,9 @@ class CallIntegrationTest < Switest::Scenario
     alice.wait_for_bridge(timeout: 5)
 
     # Alice plays DTMF tones — B-leg's start_dtmf should detect them
-    alice.call.send_dtmf("789")
-
-    digits = bob.call.receive_dtmf(count: 3, timeout: 5)
-    assert_equal "789", digits, "Bob should receive DTMF digits from Alice"
+    assert_dtmf(bob, "789") do
+      alice.send_dtmf("789")
+    end
 
     alice.hangup
     bob.wait_for_end(timeout: 5)
