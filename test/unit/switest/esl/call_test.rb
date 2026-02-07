@@ -260,6 +260,22 @@ class Switest::ESL::CallTest < Minitest::Test
     assert_equal "123", digits
   end
 
+  def test_flush_dtmf_clears_buffer
+    call = Switest::ESL::Call.new(
+      id: "test-uuid",
+      connection: @connection,
+      direction: :inbound
+    )
+
+    call.handle_dtmf("1")
+    call.handle_dtmf("2")
+    call.flush_dtmf
+
+    call.handle_dtmf("3")
+    digits = call.receive_dtmf(count: 1, timeout: 1)
+    assert_equal "3", digits
+  end
+
   def test_dtmf_timeout
     call = Switest::ESL::Call.new(
       id: "test-uuid",

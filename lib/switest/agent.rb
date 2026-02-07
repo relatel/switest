@@ -72,6 +72,11 @@ module Switest
       @call.receive_dtmf(count: count, timeout: timeout)
     end
 
+    def flush_dtmf
+      raise "No call for DTMF" unless @call
+      @call.flush_dtmf
+    end
+
     def wait_for_call(timeout: 5)
       deadline = Time.now + timeout
       while Time.now < deadline

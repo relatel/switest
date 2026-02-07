@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "minitest/test"
+require "concurrent"
 
 module Switest
   class Scenario < Minitest::Test
@@ -60,9 +61,18 @@ module Switest
       refute agent.ended?, "Expected call to still be active"
     end
 
-    def assert_dtmf(agent, expected_dtmf, timeout: 5)
+    def assert_dtmf(agent, expected_dtmf, timeout: 5, after: 1, &block)
       assert agent.call?, "Agent has no call"
-      received = agent.receive_dtmf(count: expected_dtmf.length, timeout: timeout)
+
+      if block
+        agent.flush_dtmf
+        task = Concurrent::ScheduledTask.execute(after) { block.call }
+        received = agent.receive_dtmf(count: expected_dtmf.length, timeout: timeout)
+        task.wait
+      else
+        received = agent.receive_dtmf(count: expected_dtmf.length, timeout: timeout)
+      end
+
       assert_equal expected_dtmf, received, "Expected DTMF '#{expected_dtmf}' but received '#{received}'"
     end
   end
