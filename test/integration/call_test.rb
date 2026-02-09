@@ -384,16 +384,14 @@ class CallIntegrationTest < Switest::Scenario
 
     alice = Agent.dial("loopback/dtmf_wait_test/public")
 
-    assert bob.wait_for_call(timeout: 5), "Bob should receive call"
+    assert_call(bob)
     bob.answer
     assert alice.wait_for_answer(timeout: 5), "Alice should be answered"
-    alice.wait_for_bridge(timeout: 5)
 
     # Alice plays DTMF tones — B-leg's start_dtmf should detect them
-    alice.call.send_dtmf("789")
-
-    digits = bob.call.receive_dtmf(count: 3, timeout: 5)
-    assert_equal "789", digits, "Bob should receive DTMF digits from Alice"
+    assert_dtmf(bob, "789") do
+      alice.send_dtmf("789")
+    end
 
     alice.hangup
     bob.wait_for_end(timeout: 5)
