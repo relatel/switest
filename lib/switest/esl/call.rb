@@ -25,6 +25,7 @@ module Switest
 
         @bridged = false
         @dtmf_buffer = Queue.new
+        @execute_complete = Queue.new
         @callbacks = { answer: [], bridge: [], end: [] }
         @mutex = Mutex.new
 
@@ -91,7 +92,7 @@ module Switest
       end
 
       def play_audio(url, wait: true)
-        sendmsg("execute", "playback", url, event_lock: wait)
+        sendmsg("execute", "playback", url, wait: wait)
       end
 
       def send_dtmf(digits, wait: true)
@@ -184,19 +185,28 @@ module Switest
         fire_callbacks(:end)
       end
 
+      def handle_execute_complete(application)
+        @execute_complete.push(application)
+      end
+
       def handle_dtmf(digit)
         @dtmf_buffer.push(digit)
       end
 
       private
 
-      def sendmsg(command, app = nil, arg = nil, event_lock: false)
+      def sendmsg(command, app = nil, arg = nil, wait: false)
         msg = +"sendmsg #{@id}\n"
         msg << "call-command: #{command}\n"
         msg << "execute-app-name: #{app}\n" if app
         msg << "execute-app-arg: #{arg}\n" if arg
-        msg << "event-lock: true\n" if event_lock
+        msg << "event-lock: true\n" if wait
         @connection.send_command(msg.chomp)
+
+        if wait
+          timeout = wait.is_a?(Numeric) ? wait : 30
+          @execute_complete.pop(timeout: timeout) rescue nil
+        end
       end
 
 

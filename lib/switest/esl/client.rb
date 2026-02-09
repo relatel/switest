@@ -126,6 +126,8 @@ module Switest
           handle_channel_bridge(event)
         when "CHANNEL_HANGUP_COMPLETE"
           handle_channel_hangup(event)
+        when "CHANNEL_EXECUTE_COMPLETE"
+          handle_channel_execute_complete(event)
         when "DTMF"
           handle_dtmf(event)
         end
@@ -188,6 +190,16 @@ module Switest
         return unless call
 
         call.handle_hangup(event.hangup_cause, event.headers)
+      end
+
+      def handle_channel_execute_complete(event)
+        uuid = event.uuid
+        return unless uuid
+
+        call = @calls[uuid]
+        other_uuid = event["Other-Leg-Unique-ID"]
+        call ||= @calls[other_uuid] if other_uuid
+        call&.handle_execute_complete(event["Application"])
       end
 
       def handle_dtmf(event)
