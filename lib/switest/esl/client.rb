@@ -39,16 +39,24 @@ module Switest
 
       # Hangup all active calls individually and wait for them to end.
       # This ensures proper hangup_cause is set for each call (important for CDRs).
+      # Sends all hangups first, then waits with a shared deadline to avoid
+      # O(n * timeout) delays with many calls.
       def hangup_all(cause: "NORMAL_CLEARING", timeout: 5)
         return unless @connection&.connected?
 
-        @calls.each_value do |call|
-          next if call.ended?
-          begin
-            call.hangup(cause, wait: timeout)
-          rescue
-            # Ignore errors during cleanup
-          end
+        active = @calls.values.reject(&:ended?)
+
+        # Send all hangups without waiting
+        active.each do |call|
+          call.hangup(cause, wait: false) rescue nil
+        end
+
+        # Wait for all to end with a single shared deadline
+        deadline = Time.now + timeout
+        active.each do |call|
+          remaining = deadline - Time.now
+          break if remaining <= 0
+          call.wait_for_end(timeout: remaining) unless call.ended?
         end
       end
 
