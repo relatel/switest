@@ -78,9 +78,8 @@ module Switest
 
       if block
         agent.flush_dtmf
-        task = Concurrent::ScheduledTask.execute(after) { block.call }
+        Concurrent::ScheduledTask.execute(after) { block.call }
         received = agent.receive_dtmf(count: expected_dtmf.length, timeout: timeout)
-        task.wait
       else
         received = agent.receive_dtmf(count: expected_dtmf.length, timeout: timeout)
       end
