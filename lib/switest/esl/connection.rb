@@ -110,8 +110,11 @@ module Switest
 
       def subscribe_events
         events = %w[
-          CHANNEL_CREATE CHANNEL_ANSWER CHANNEL_BRIDGE CHANNEL_HANGUP
-          CHANNEL_HANGUP_COMPLETE CHANNEL_EXECUTE_COMPLETE DTMF CHANNEL_STATE
+          CHANNEL_CREATE           # Detect new inbound calls
+          CHANNEL_ANSWER           # Track when calls are answered
+          CHANNEL_BRIDGE           # Track when calls are bridged
+          CHANNEL_HANGUP_COMPLETE  # Track call end with final headers
+          DTMF                     # Receive DTMF digits per call
         ].join(" ")
 
         @socket.write("event plain #{events}\n\n")
