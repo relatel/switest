@@ -171,12 +171,20 @@ agent.end_reason  # e.g. "NORMAL_CLEARING"
 assert_call(agent, timeout: 5)                       # Agent receives a call
 assert_no_call(agent, timeout: 2)                    # Agent does NOT receive a call
 assert_answered(agent, timeout: 5)                   # Call has been answered
-assert_bridged(agent, timeout: 5)                    # Call has been bridged
+assert_bridged(agent, timeout: 5)                    # Call has been bridged (see note below)
 assert_hungup(agent, timeout: 5)                     # Call has ended
 assert_not_hungup(agent, timeout: 2)                 # Call is still active
 assert_dtmf(agent, "123", timeout: 5)                # Agent receives expected DTMF digits
 assert_dtmf(agent, "123") { other.send_dtmf("123") } # With block: flushes stale DTMF first
 ```
+
+**Note on `assert_bridged`:** This assertion only works when a CHANNEL_BRIDGE
+event fires on a channel Switest tracks. It works when the FreeSWITCH dialplan
+runs the `bridge` application on an inbound channel picked up via
+`listen_for_call`. It does **not** work for agent-to-agent calls routed through
+SIP gateways — the bridge happens on internal gateway legs whose UUIDs Switest
+doesn't track. For gateway scenarios, use `assert_answered` on both agents
+instead to confirm the call is connected.
 
 The `hangup_all` helper ends all active calls (useful before CDR assertions):
 
