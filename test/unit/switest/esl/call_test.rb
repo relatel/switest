@@ -389,8 +389,6 @@ class Switest::ESL::CallTest < Minitest::Test
       direction: :outbound
     )
 
-    # Pre-fill execute_complete so wait doesn't block
-    call.handle_execute_complete("playback")
     call.send_dtmf("123")
 
     command = @connection.commands_sent.last
@@ -421,8 +419,6 @@ class Switest::ESL::CallTest < Minitest::Test
       direction: :outbound
     )
 
-    # Pre-fill execute_complete so wait doesn't block
-    call.handle_execute_complete("playback")
     call.play_audio("/tmp/test.wav")
 
     command = @connection.commands_sent.last

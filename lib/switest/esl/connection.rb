@@ -114,7 +114,6 @@ module Switest
           CHANNEL_ANSWER           # Track when calls are answered
           CHANNEL_BRIDGE           # Track when calls are bridged
           CHANNEL_HANGUP_COMPLETE  # Track call end with final headers
-          CHANNEL_EXECUTE_COMPLETE # Wait for application execution to finish
           DTMF                     # Receive DTMF digits per call
         ].join(" ")
 
