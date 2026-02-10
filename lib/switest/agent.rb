@@ -31,6 +31,7 @@ module Switest
         # Register a one-time handler for matching inbound calls
         @events.once(:offer, guards) do |data|
           agent.instance_variable_set(:@call, data[:call])
+          agent.instance_variable_get(:@call_event).set
         end
 
         agent
@@ -41,6 +42,7 @@ module Switest
 
     def initialize(call)
       @call = call
+      @call_event = Concurrent::Event.new
     end
 
     def call?
@@ -78,12 +80,9 @@ module Switest
     end
 
     def wait_for_call(timeout: 5)
-      deadline = Time.now + timeout
-      while Time.now < deadline
-        return true if @call
-        sleep 0.1
-      end
-      false
+      return true if @call
+      @call_event.wait(timeout)
+      !@call.nil?
     end
 
     def wait_for_answer(timeout: 5)
