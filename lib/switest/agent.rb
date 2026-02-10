@@ -30,113 +30,103 @@ module Switest
 
         # Register a one-time handler for matching inbound calls
         @events.once(:offer, guards) do |data|
-          agent.instance_variable_get(:@call).set(data[:call])
+          agent.instance_variable_set(:@call, data[:call])
+          agent.instance_variable_get(:@call_event).set
         end
 
         agent
       end
     end
 
-    def initialize(call)
-      @call = Concurrent::IVar.new
-      @call.set(call) if call
-    end
+    attr_reader :call
 
-    def call
-      @call.value! if @call.complete?
+    def initialize(call)
+      @call = call
+      @call_event = Concurrent::Event.new
     end
 
     def call?
-      @call.complete?
+      !@call.nil?
     end
 
     def answer(wait: 5)
-      raise "No call to answer" unless call?
-      call.answer(wait: wait)
+      raise "No call to answer" unless @call
+      @call.answer(wait: wait)
     end
 
     def hangup(wait: 5)
-      raise "No call to hangup" unless call?
-      call.hangup(wait: wait)
+      raise "No call to hangup" unless @call
+      @call.hangup(wait: wait)
     end
 
     def reject(reason = :decline)
-      raise "No call to reject" unless call?
-      call.reject(reason)
+      raise "No call to reject" unless @call
+      @call.reject(reason)
     end
 
     def send_dtmf(digits)
-      raise "No call for DTMF" unless call?
-      call.send_dtmf(digits)
+      raise "No call for DTMF" unless @call
+      @call.send_dtmf(digits)
     end
 
     def receive_dtmf(count: 1, timeout: 5)
-      raise "No call for DTMF" unless call?
-      call.receive_dtmf(count: count, timeout: timeout)
+      raise "No call for DTMF" unless @call
+      @call.receive_dtmf(count: count, timeout: timeout)
     end
 
     def flush_dtmf
-      raise "No call for DTMF" unless call?
-      c = call
-      warn "[DEBUG flush_dtmf] call returned: #{c.class} (complete?=#{@call.complete?}, state=#{@call.instance_variable_get(:@state)}, ivar_id=#{@call.object_id})"
-      c.flush_dtmf
+      raise "No call for DTMF" unless @call
+      @call.flush_dtmf
     end
 
     def wait_for_call(timeout: 5)
-      return true if call?
-      @call.wait(timeout)
-      call?
+      return true if @call
+      @call_event.wait(timeout)
+      !@call.nil?
     end
 
     def wait_for_answer(timeout: 5)
-      raise "No call to wait for" unless call?
-      call.wait_for_answer(timeout: timeout)
+      raise "No call to wait for" unless @call
+      @call.wait_for_answer(timeout: timeout)
     end
 
     def wait_for_bridge(timeout: 5)
-      raise "No call to wait for" unless call?
-      call.wait_for_bridge(timeout: timeout)
+      raise "No call to wait for" unless @call
+      @call.wait_for_bridge(timeout: timeout)
     end
 
     def wait_for_end(timeout: 5)
-      raise "No call to wait for" unless call?
-      call.wait_for_end(timeout: timeout)
+      raise "No call to wait for" unless @call
+      @call.wait_for_end(timeout: timeout)
     end
 
     # Delegate state queries to call
     def alive?
-      return false unless call?
-      call.alive?
+      @call&.alive? || false
     end
 
     def active?
-      return false unless call?
-      call.active?
+      @call&.active? || false
     end
 
     def answered?
-      return false unless call?
-      call.answered?
+      @call&.answered? || false
     end
 
     def ended?
-      return false unless call?
-      call.ended?
+      @call&.ended? || false
     end
 
     def start_time
-      return unless call?
-      call.start_time
+      @call&.start_time
     end
 
     def answer_time
-      return unless call?
-      call.answer_time
+      @call&.answer_time
     end
 
     def end_reason
-      return unless call?
-      call.end_reason
+      @call&.end_reason
     end
   end
 end
