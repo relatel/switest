@@ -43,7 +43,7 @@ module Switest
     end
 
     def call
-      @call.value(0)
+      @call.value if @call.complete?
     end
 
     def call?
@@ -51,32 +51,32 @@ module Switest
     end
 
     def answer(wait: 5)
-      raise "No call to answer" unless call
+      raise "No call to answer" unless call?
       call.answer(wait: wait)
     end
 
     def hangup(wait: 5)
-      raise "No call to hangup" unless call
+      raise "No call to hangup" unless call?
       call.hangup(wait: wait)
     end
 
     def reject(reason = :decline)
-      raise "No call to reject" unless call
+      raise "No call to reject" unless call?
       call.reject(reason)
     end
 
     def send_dtmf(digits)
-      raise "No call for DTMF" unless call
+      raise "No call for DTMF" unless call?
       call.send_dtmf(digits)
     end
 
     def receive_dtmf(count: 1, timeout: 5)
-      raise "No call for DTMF" unless call
+      raise "No call for DTMF" unless call?
       call.receive_dtmf(count: count, timeout: timeout)
     end
 
     def flush_dtmf
-      raise "No call for DTMF" unless call
+      raise "No call for DTMF" unless call?
       call.flush_dtmf
     end
 
@@ -87,47 +87,54 @@ module Switest
     end
 
     def wait_for_answer(timeout: 5)
-      raise "No call to wait for" unless call
+      raise "No call to wait for" unless call?
       call.wait_for_answer(timeout: timeout)
     end
 
     def wait_for_bridge(timeout: 5)
-      raise "No call to wait for" unless call
+      raise "No call to wait for" unless call?
       call.wait_for_bridge(timeout: timeout)
     end
 
     def wait_for_end(timeout: 5)
-      raise "No call to wait for" unless call
+      raise "No call to wait for" unless call?
       call.wait_for_end(timeout: timeout)
     end
 
     # Delegate state queries to call
     def alive?
-      call&.alive? || false
+      return false unless call?
+      call.alive?
     end
 
     def active?
-      call&.active? || false
+      return false unless call?
+      call.active?
     end
 
     def answered?
-      call&.answered? || false
+      return false unless call?
+      call.answered?
     end
 
     def ended?
-      call&.ended? || false
+      return false unless call?
+      call.ended?
     end
 
     def start_time
-      call&.start_time
+      return unless call?
+      call.start_time
     end
 
     def answer_time
-      call&.answer_time
+      return unless call?
+      call.answer_time
     end
 
     def end_reason
-      call&.end_reason
+      return unless call?
+      call.end_reason
     end
   end
 end
