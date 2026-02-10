@@ -77,7 +77,9 @@ module Switest
 
     def flush_dtmf
       raise "No call for DTMF" unless call?
-      call.flush_dtmf
+      c = call
+      warn "[DEBUG flush_dtmf] call returned: #{c.class} (complete?=#{@call.complete?}, state=#{@call.instance_variable_get(:@state)}, ivar_id=#{@call.object_id})"
+      c.flush_dtmf
     end
 
     def wait_for_call(timeout: 5)
