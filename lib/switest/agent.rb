@@ -46,7 +46,6 @@ module Switest
       @call.value(0)
     end
 
-
     def call?
       @call.complete?
     end
