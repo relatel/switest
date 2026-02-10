@@ -43,7 +43,7 @@ module Switest
     end
 
     def call
-      @call.value if @call.complete?
+      @call.value! if @call.complete?
     end
 
     def call?
@@ -81,9 +81,9 @@ module Switest
     end
 
     def wait_for_call(timeout: 5)
-      return true if @call.complete?
-      @call.value(timeout)
-      @call.complete?
+      return true if call?
+      @call.wait(timeout)
+      call?
     end
 
     def wait_for_answer(timeout: 5)
