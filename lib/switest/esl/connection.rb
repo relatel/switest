@@ -150,7 +150,7 @@ module Switest
           rescue IOError, Errno::EBADF, Errno::ECONNRESET
             # Socket closed
             break
-          rescue => e
+          rescue
             # Log but continue on other errors
             break unless @running
           end

@@ -87,7 +87,7 @@ module Switest
         # Originate call (park it so we control it)
         begin
           @connection.bgapi("originate #{var_string}#{to} &park")
-        rescue => e
+        rescue
           @calls.delete(uuid)
           raise
         end
