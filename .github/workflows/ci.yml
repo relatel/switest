@@ -56,6 +56,12 @@ jobs:
           ruby-version: "4.0"
           bundler-cache: true
 
+      - name: Debug connectivity
+        run: |
+          docker compose ps
+          docker compose port freeswitch 8021
+          nc -zv 127.0.0.1 8021 || true
+
       - name: Run integration tests
         env:
           FREESWITCH_HOST: 127.0.0.1
