@@ -13,6 +13,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -y install \
     > /etc/apt/sources.list.d/freeswitch.list && \
   apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -y install \
     freeswitch \
+    freeswitch-conf-vanilla \
     freeswitch-mod-console \
     freeswitch-mod-logfile \
     freeswitch-mod-event-socket \
