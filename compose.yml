@@ -1,16 +1,10 @@
 services:
   freeswitch:
-    build:
-      context: docker/freeswitch
-      args:
-        fs_repo_user: ${FS_REPO_USER}
-        fs_repo_password: ${FS_REPO_PASSWORD}
+    image: ghcr.io/patrickbaus/freeswitch-docker
+    platform: linux/amd64
     ports:
-      - "5060:5060/udp"
-      - "5060:5060/tcp"
-      - "8021:8021/tcp"
+      - "8021:8021"
     volumes:
-      - ./docker/freeswitch/modules.conf.xml:/etc/freeswitch/autoload_configs/modules.conf.xml:ro
       - ./docker/freeswitch/event_socket.conf.xml:/etc/freeswitch/autoload_configs/event_socket.conf.xml:ro
       - ./docker/freeswitch/acl.conf.xml:/etc/freeswitch/autoload_configs/acl.conf.xml:ro
       - ./docker/freeswitch/dialplan.xml:/etc/freeswitch/dialplan/public/00_switest.xml:ro

@@ -32,10 +32,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Start FreeSWITCH
-        env:
-          FS_REPO_USER: ${{ secrets.FS_REPO_USER }}
-          FS_REPO_PASSWORD: ${{ secrets.FS_REPO_PASSWORD }}
-        run: docker compose up -d --build freeswitch
+        run: docker compose up -d freeswitch
 
       - name: Wait for FreeSWITCH to be healthy
         run: |
@@ -80,10 +77,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Start FreeSWITCH
-        env:
-          FS_REPO_USER: ${{ secrets.FS_REPO_USER }}
-          FS_REPO_PASSWORD: ${{ secrets.FS_REPO_PASSWORD }}
-        run: docker compose up -d --build freeswitch
+        run: docker compose up -d freeswitch
 
       - name: Wait for FreeSWITCH to be healthy
         run: |
