@@ -1,12 +1,18 @@
 # frozen_string_literal: true
 
 require "minitest/test"
-require "concurrent"
+require "async"
 
 module Switest
   class Scenario < Minitest::Test
     # Make Agent accessible to subclasses
     Agent = Switest::Agent
+
+    # Run each test inside an async reactor so that fibers, conditions,
+    # and async I/O work transparently for users extending Scenario.
+    def run(...)
+      Sync { super }
+    end
 
     def setup
       @events = Events.new
@@ -78,7 +84,10 @@ module Switest
 
       if block
         agent.flush_dtmf
-        Concurrent::ScheduledTask.execute(after) { block.call }
+        Async do
+          sleep after
+          block.call
+        end
         received = agent.receive_dtmf(count: expected_dtmf.length, timeout: timeout + after)
       else
         received = agent.receive_dtmf(count: expected_dtmf.length, timeout: timeout)

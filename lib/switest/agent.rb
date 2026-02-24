@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require "async"
+require "async/promise"
+
 module Switest
   class Agent
     class << self
@@ -31,7 +34,7 @@ module Switest
         # Register a one-time handler for matching inbound calls
         @events.once(:offer, guards) do |data|
           agent.instance_variable_set(:@call, data[:call])
-          agent.instance_variable_get(:@call_event).set
+          agent.instance_variable_get(:@call_promise).resolve(true)
         end
 
         agent
@@ -42,7 +45,7 @@ module Switest
 
     def initialize(call)
       @call = call
-      @call_event = Concurrent::Event.new
+      @call_promise = Async::Promise.new
     end
 
     def call?
@@ -81,7 +84,9 @@ module Switest
 
     def wait_for_call(timeout: 5)
       return true if @call
-      @call_event.wait(timeout)
+      Async::Task.current.with_timeout(timeout) { @call_promise.wait }
+      !@call.nil?
+    rescue Async::TimeoutError
       !@call.nil?
     end
 

@@ -1,8 +1,18 @@
 # frozen_string_literal: true
 
 require "minitest/autorun"
+require "async"
 
 require "switest"
+
+# Run every test inside an async reactor so fiber-based primitives
+# (Async::Variable, Async::Condition, Async::Queue) work transparently.
+module AsyncTestRunner
+  def run(...)
+    Sync { super }
+  end
+end
+Minitest::Test.prepend(AsyncTestRunner)
 
 # Mock ESL Connection for unit tests
 module Switest

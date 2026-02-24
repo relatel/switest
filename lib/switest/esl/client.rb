@@ -10,9 +10,8 @@ module Switest
 
       def initialize(connection = nil)
         @connection = connection
-        @calls = Concurrent::Map.new
+        @calls = {}
         @offer_handlers = []
-        @mutex = Mutex.new
       end
 
       def start
@@ -38,7 +37,6 @@ module Switest
       end
 
       # Hangup all active calls individually and wait for them to end.
-      # This ensures proper hangup_cause is set for each call (important for CDRs).
       # Sends all hangups first, then waits with a shared deadline to avoid
       # O(n * timeout) delays with many calls.
       def hangup_all(cause: "NORMAL_CLEARING", timeout: 5)
@@ -96,13 +94,11 @@ module Switest
       end
 
       def on_offer(&block)
-        @mutex.synchronize { @offer_handlers << block }
+        @offer_handlers << block
       end
 
       def active_calls
-        result = {}
-        @calls.each_pair { |k, v| result[k] = v if v.alive? }
-        result
+        @calls.select { |_k, v| v.alive? }
       end
 
       private
@@ -205,8 +201,7 @@ module Switest
       end
 
       def fire_offer(call)
-        handlers = @mutex.synchronize { @offer_handlers.dup }
-        handlers.each { |h| h.call(call) }
+        @offer_handlers.each { |h| h.call(call) }
       end
     end
   end

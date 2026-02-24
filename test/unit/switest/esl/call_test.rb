@@ -120,10 +120,10 @@ class Switest::ESL::CallTest < Minitest::Test
       direction: :inbound
     )
 
-    Thread.new {
+    Async do
       sleep 0.2
       call.handle_answer
-    }
+    end
 
     result = call.wait_for_answer(timeout: 1)
     assert result
@@ -147,10 +147,10 @@ class Switest::ESL::CallTest < Minitest::Test
       direction: :inbound
     )
 
-    Thread.new {
+    Async do
       sleep 0.2
       call.handle_hangup("NORMAL_CLEARING")
-    }
+    end
 
     result = call.wait_for_end(timeout: 1)
     assert result
@@ -178,12 +178,6 @@ class Switest::ESL::CallTest < Minitest::Test
     call.handle_hangup("NORMAL_CLEARING")
     call.handle_bridge
 
-    # bridged? returns true because hangup releases the bridged latch,
-    # but the handle_bridge early-returns without setting @bridged via mutex
-    # Actually let's check: hangup counts down the latch but doesn't set @bridged
-    # handle_bridge returns early because state == :ended
-    # So bridged? should be false (the flag), but wait_for_bridge would return
-    # because the latch was released by hangup
     refute call.bridged?, "Should not be bridged after hangup"
   end
 
@@ -208,10 +202,10 @@ class Switest::ESL::CallTest < Minitest::Test
       direction: :outbound
     )
 
-    Thread.new {
+    Async do
       sleep 0.2
       call.handle_bridge
-    }
+    end
 
     result = call.wait_for_bridge(timeout: 1)
     assert result
@@ -235,10 +229,10 @@ class Switest::ESL::CallTest < Minitest::Test
       direction: :outbound
     )
 
-    Thread.new {
+    Async do
       sleep 0.2
       call.handle_hangup("NORMAL_CLEARING")
-    }
+    end
 
     # Should unblock even though bridge never happened
     result = call.wait_for_bridge(timeout: 1)

@@ -70,26 +70,22 @@ class Switest::AgentTest < Minitest::Test
       from: "12345"
     )
 
-    Thread.new {
+    Async do
       sleep 0.5
       @events.emit(:offer, { to: call.to, from: call.from, call: call })
-    }
-
-    Timeout.timeout(2) do
-      result = agent.wait_for_call(timeout: 2)
-      assert result
-      assert_equal call, agent.call
     end
+
+    result = agent.wait_for_call(timeout: 2)
+    assert result
+    assert_equal call, agent.call
   end
 
   def test_wait_for_call_timeout
     agent = Switest::Agent.listen_for_call(to: /71999999/)
 
-    Timeout.timeout(2) do
-      result = agent.wait_for_call(timeout: 0.5)
-      refute result
-      assert_nil agent.call
-    end
+    result = agent.wait_for_call(timeout: 0.5)
+    refute result
+    assert_nil agent.call
   end
 
   def test_wait_for_answer
@@ -101,16 +97,14 @@ class Switest::AgentTest < Minitest::Test
     )
     agent = Switest::Agent.new(call)
 
-    Thread.new {
+    Async do
       sleep 0.5
       call.handle_answer
-    }
-
-    Timeout.timeout(2) do
-      result = agent.wait_for_answer(timeout: 2)
-      assert result
-      assert agent.answered?
     end
+
+    result = agent.wait_for_answer(timeout: 2)
+    assert result
+    assert agent.answered?
   end
 
   def test_wait_for_end
@@ -122,16 +116,14 @@ class Switest::AgentTest < Minitest::Test
     )
     agent = Switest::Agent.new(call)
 
-    Thread.new {
+    Async do
       sleep 0.5
       call.handle_hangup("NORMAL_CLEARING")
-    }
-
-    Timeout.timeout(2) do
-      result = agent.wait_for_end(timeout: 2)
-      assert result
-      assert agent.ended?
     end
+
+    result = agent.wait_for_end(timeout: 2)
+    assert result
+    assert agent.ended?
   end
 
   def test_answer_sends_command

@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
-require "concurrent"
+require "async"
+require "async/promise"
+require "async/queue"
 
 module Switest
   module ESL
@@ -24,13 +26,12 @@ module Switest
         @end_reason = nil
 
         @bridged = false
-        @dtmf_buffer = Queue.new
+        @dtmf_queue = Async::Queue.new
         @callbacks = { answer: [], bridge: [], end: [] }
-        @mutex = Mutex.new
 
-        @answered_latch = Concurrent::CountDownLatch.new(1)
-        @bridged_latch = Concurrent::CountDownLatch.new(1)
-        @ended_latch = Concurrent::CountDownLatch.new(1)
+        @answered_promise = Async::Promise.new
+        @bridged_promise = Async::Promise.new
+        @ended_promise = Async::Promise.new
       end
 
       # State queries
@@ -99,7 +100,7 @@ module Switest
       end
 
       def flush_dtmf
-        @dtmf_buffer.clear
+        @dtmf_queue.dequeue until @dtmf_queue.empty?
       end
 
       def receive_dtmf(count: 1, timeout: 5)
@@ -110,12 +111,11 @@ module Switest
           remaining = deadline - Time.now
           break if remaining <= 0
 
-          begin
-            digit = @dtmf_buffer.pop(timeout: remaining)
-            digits << digit if digit
-          rescue ThreadError
-            break # Timeout
+          Async::Task.current.with_timeout(remaining) do
+            digits << @dtmf_queue.dequeue
           end
+        rescue Async::TimeoutError
+          break
         end
 
         digits
@@ -123,69 +123,72 @@ module Switest
 
       # Callbacks
       def on_answer(&block)
-        @mutex.synchronize { @callbacks[:answer] << block }
+        @callbacks[:answer] << block
       end
 
       def on_bridge(&block)
-        @mutex.synchronize { @callbacks[:bridge] << block }
+        @callbacks[:bridge] << block
       end
 
       def on_end(&block)
-        @mutex.synchronize { @callbacks[:end] << block }
+        @callbacks[:end] << block
       end
 
       # Blocking waits
       def wait_for_answer(timeout: 5)
-        @answered_latch.wait(timeout)
+        return true if answered?
+        Async::Task.current.with_timeout(timeout) { @answered_promise.wait }
+        answered?
+      rescue Async::TimeoutError
         answered?
       end
 
       def wait_for_bridge(timeout: 5)
-        @bridged_latch.wait(timeout)
+        return true if bridged?
+        Async::Task.current.with_timeout(timeout) { @bridged_promise.wait }
+        bridged?
+      rescue Async::TimeoutError
         bridged?
       end
 
       def wait_for_end(timeout: 5)
-        @ended_latch.wait(timeout)
+        return true if ended?
+        Async::Task.current.with_timeout(timeout) { @ended_promise.wait }
+        ended?
+      rescue Async::TimeoutError
         ended?
       end
 
       # Internal state updates (called by Client)
       def handle_answer
-        @mutex.synchronize do
-          return if @state == :ended
-          @state = :answered
-          @answer_time = Time.now
-        end
-        @answered_latch.count_down
+        return if @state == :ended
+        @state = :answered
+        @answer_time = Time.now
+        @answered_promise.resolve(true)
         fire_callbacks(:answer)
       end
 
       def handle_bridge
-        @mutex.synchronize do
-          return if @state == :ended
-          @bridged = true
-        end
-        @bridged_latch.count_down
+        return if @state == :ended
+        @bridged = true
+        @bridged_promise.resolve(true)
         fire_callbacks(:bridge)
       end
 
       def handle_hangup(cause, headers = {})
-        @mutex.synchronize do
-          return if @state == :ended
-          @state = :ended
-          @end_time = Time.now
-          @end_reason = cause
-          @headers.merge!(headers)
-        end
-        @answered_latch.count_down  # Release any waiting threads
-        @bridged_latch.count_down
-        @ended_latch.count_down
+        return if @state == :ended
+        @state = :ended
+        @end_time = Time.now
+        @end_reason = cause
+        @headers.merge!(headers)
+        @answered_promise.resolve(true)
+        @bridged_promise.resolve(true)
+        @ended_promise.resolve(true)
         fire_callbacks(:end)
       end
 
       def handle_dtmf(digit)
-        @dtmf_buffer.push(digit)
+        @dtmf_queue.enqueue(digit)
       end
 
       private
@@ -199,10 +202,8 @@ module Switest
         @connection.send_command(msg.chomp)
       end
 
-
       def fire_callbacks(type)
-        callbacks = @mutex.synchronize { @callbacks[type].dup }
-        callbacks.each { |cb| cb.call(self) }
+        @callbacks[type].each { |cb| cb.call(self) }
       end
     end
   end

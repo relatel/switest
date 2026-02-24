@@ -26,9 +26,6 @@ class Switest::ScenarioTest < Minitest::Test
     )
   end
 
-  # Test the assertion logic without using Scenario class directly
-  # since we can't easily mock the ESL connection in Scenario.setup
-
   def test_assert_call_success
     agent = Switest::Agent.listen_for_call
     call = make_call
@@ -72,10 +69,10 @@ class Switest::ScenarioTest < Minitest::Test
     call = make_call
     agent = Switest::Agent.new(call)
 
-    Thread.new {
+    Async do
       sleep 0.2
       call.handle_hangup("NORMAL_CLEARING")
-    }
+    end
 
     success = agent.wait_for_end(timeout: 1)
     assert success, "Expected call to be hung up"
@@ -105,12 +102,12 @@ class Switest::ScenarioTest < Minitest::Test
     call = make_call
     agent = Switest::Agent.new(call)
 
-    Thread.new {
+    Async do
       sleep 0.1
       call.handle_dtmf("1")
       call.handle_dtmf("2")
       call.handle_dtmf("3")
-    }
+    end
 
     received = agent.receive_dtmf(count: 3, timeout: 1)
     assert_equal "123", received
@@ -120,10 +117,10 @@ class Switest::ScenarioTest < Minitest::Test
     call = make_call
     agent = Switest::Agent.new(call)
 
-    Thread.new {
+    Async do
       sleep 0.1
       call.handle_dtmf("9")
-    }
+    end
 
     # Only one digit sent, waiting for 3
     received = agent.receive_dtmf(count: 3, timeout: 0.5)
