@@ -1,0 +1,11 @@
+services:
+  freeswitch:
+    build:
+      context: docker/freeswitch
+      args:
+        fs_repo_user: ${FS_REPO_USER}
+        fs_repo_password: ${FS_REPO_PASSWORD}
+    ports:
+      - "5060:5060/udp"
+      - "5060:5060/tcp"
+      - "8021:8021/tcp"

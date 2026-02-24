@@ -8,3 +8,4 @@ Gemfile.lock
 
 switest-*.gem
 mise.toml
+.env
