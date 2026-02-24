@@ -5,6 +5,8 @@ require "async"
 
 require "switest"
 
+Warning[:experimental] = false
+
 # Run every test inside an async reactor so fiber-based primitives
 # (Async::Variable, Async::Condition, Async::Queue) work transparently.
 module AsyncTestRunner
