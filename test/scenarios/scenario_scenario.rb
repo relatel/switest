@@ -5,7 +5,7 @@
 # Run with:
 #   rake integration
 
-require_relative "../integration_helper"
+require_relative "../scenario_helper"
 
 class ScenarioIntegrationTest < Switest::Scenario
 

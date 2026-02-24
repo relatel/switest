@@ -17,9 +17,16 @@ Minitest::TestTask.create(:integration) do |t|
   t.verbose = true
 end
 
+Minitest::TestTask.create(:scenarios) do |t|
+  t.libs << "lib" << "test"
+  t.test_globs = ["test/scenarios/**/*_scenario.rb"]
+  t.warning = false
+  t.verbose = true
+end
+
 Minitest::TestTask.create(:all) do |t|
   t.libs << "lib" << "test"
-  t.test_globs = ["test/unit/switest/**/*_test.rb", "test/integration/**/*_test.rb"]
+  t.test_globs = ["test/unit/switest/**/*_test.rb", "test/integration/**/*_test.rb", "test/scenarios/**/*_scenario.rb"]
   t.warning = false
 end
 

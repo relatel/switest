@@ -8,6 +8,10 @@
 require_relative "../integration_helper"
 
 class ESLConnectionIntegrationTest < Minitest::Test
+  def run(...)
+    Sync { super }
+  end
+
   def setup
     config = Switest.configuration
     @connection = Switest::ESL::Connection.new(
