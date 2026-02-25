@@ -2,6 +2,7 @@
 
 require "minitest/autorun"
 require "async"
+require "async/promise"
 
 require "switest"
 
@@ -16,54 +17,34 @@ module AsyncTestRunner
 end
 Minitest::Test.prepend(AsyncTestRunner)
 
-# Mock ESL Connection for unit tests
+# Mock Session for unit tests (replaces the inbound librevox session)
 module Switest
-  module ESL
-    class MockConnection
-      attr_reader :commands_sent, :event_handlers
+  class MockSession
+      attr_reader :commands_sent
 
       def initialize
         @commands_sent = []
-        @connected = true
-        @event_handlers = []
       end
 
-      def connect
-        self
-      end
-
-      def disconnect
-        @connected = false
-      end
-
-      def connected?
-        @connected
-      end
-
-      def send_command(cmd)
-        @commands_sent << cmd
-        { headers: { "Reply-Text" => "+OK" }, body: nil }
-      end
-
-      def api(cmd)
-        @commands_sent << "api #{cmd}"
-        "+OK"
+      def command(msg)
+        @commands_sent << msg
+        mock_response
       end
 
       def bgapi(cmd)
-        @commands_sent << "bgapi #{cmd}"
-        { headers: { "Reply-Text" => "+OK" }, body: nil }
+        command("bgapi #{cmd}")
       end
 
-      def on_event(&block)
-        @event_handlers << block
-      end
+      private
 
-      # Simulate an event from FreeSWITCH
-      def simulate_event(body)
-        response = { headers: {}, body: body }
-        @event_handlers.each { |h| h.call(response) }
+      def mock_response
+        Struct.new(:headers, :content, :event?, :event, :reply?).new(
+          { reply_text: "+OK" },
+          "+OK",
+          false,
+          nil,
+          true
+        )
       end
-    end
   end
 end

@@ -6,8 +6,9 @@ require_relative "../../test_helper"
 class Switest::ScenarioTest < Minitest::Test
   def setup
     @events = Switest::Events.new
-    @connection = Switest::ESL::MockConnection.new
-    @client = Switest::ESL::Client.new(@connection)
+    @session = Switest::MockSession.new
+    @client = Switest::Client.new
+    @client.instance_variable_set(:@session, @session)
     Switest::Agent.setup(@client, @events)
   end
 
@@ -15,14 +16,14 @@ class Switest::ScenarioTest < Minitest::Test
     Switest::Agent.teardown
   end
 
-  # Helper to create a call
   def make_call(to: "71999999", from: "12345")
-    Switest::ESL::Call.new(
-      id: "test-uuid-#{rand(10000)}",
-      connection: @connection,
+    id = "test-uuid-#{rand(10000)}"
+    Switest::Call.new(
+      id: id,
       direction: :inbound,
       to: to,
-      from: from
+      from: from,
+      session: @session
     )
   end
 

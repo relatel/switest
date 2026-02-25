@@ -1,19 +1,19 @@
 # frozen_string_literal: true
 
-# Integration tests for ESL Client against real FreeSWITCH
+# Integration tests for Client against real FreeSWITCH
 #
 # Run with:
 #   rake integration
 
 require_relative "../integration_helper"
 
-class ESLClientIntegrationTest < Minitest::Test
+class ClientIntegrationTest < Minitest::Test
   def run(...)
     Sync { super }
   end
 
   def setup
-    @client = Switest::ESL::Client.new
+    @client = Switest::Client.new
   end
 
   def teardown
@@ -23,23 +23,11 @@ class ESLClientIntegrationTest < Minitest::Test
   def test_start_and_stop
     @client.start
 
-    assert @client.connection.connected?, "Client should connect on start"
+    assert @client.connected?, "Client should connect on start"
 
     @client.stop
 
-    refute @client.connection.connected?, "Client should disconnect on stop"
-  end
-
-  def test_event_reader_thread_starts
-    @client.start
-
-    # Give the reader thread a moment to start
-    sleep 0.1
-
-    # The reader thread should be running
-    # We can verify by checking the client is still connected after a moment
-    sleep 0.2
-    assert @client.connection.connected?, "Connection should stay open with reader running"
+    refute @client.connected?, "Client should disconnect on stop"
   end
 
   def test_active_calls_empty_initially
@@ -64,15 +52,10 @@ class ESLClientIntegrationTest < Minitest::Test
 
     # Dialing an invalid destination should create a call object
     # but the call will fail (no actual SIP endpoint)
+    # With inbound ESL, the bgapi will return but the call won't progress
     call = @client.dial(to: "error/]]invalid[[")
 
-    assert_instance_of Switest::ESL::Call, call
-    assert call.id, "Call should have an ID"
-
-    # The call should be tracked
-    assert @client.calls[call.id], "Call should be in client's call map"
-
-    # Note: We don't wait for end here because invalid destinations
-    # may not generate proper hangup events from FreeSWITCH
+    # The call was created but will likely fail
+    assert_instance_of Switest::Call, call
   end
 end

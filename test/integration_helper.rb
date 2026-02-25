@@ -2,6 +2,8 @@
 
 require "switest"
 
+Warning[:experimental] = false
+
 # Configure FreeSWITCH connection from environment
 Switest.configure do |config|
   config.host = ENV.fetch("FREESWITCH_HOST", "127.0.0.1")

@@ -16,7 +16,7 @@ module Switest
 
     def setup
       @events = Events.new
-      @client = ESL::Client.new
+      @client = Client.new
       @client.start
 
       # Route inbound calls through events system
@@ -26,7 +26,7 @@ module Switest
           from: call.from,
           call: call,
           headers: call.headers,
-          profile: call.headers["variable_sofia_profile_name"]
+          profile: call.headers[:variable_sofia_profile_name]
         })
       end
 

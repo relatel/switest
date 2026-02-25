@@ -5,19 +5,18 @@ require "async/promise"
 require "async/queue"
 
 module Switest
-  module ESL
-    class Call
+  class Call
       attr_reader :id, :to, :from, :headers, :direction
       attr_reader :start_time, :answer_time, :end_time, :end_reason
       attr_reader :state
 
-      def initialize(id:, connection:, direction:, to: nil, from: nil, headers: {})
+      def initialize(id:, direction:, to: nil, from: nil, headers: {}, session: nil)
         @id = id
-        @connection = connection
+        @session = session
         @direction = direction  # :inbound or :outbound
         @to = to
         @from = from
-        @headers = Switest::CaseInsensitiveHash.from(headers)
+        @headers = headers.is_a?(Hash) ? headers.dup : {}
 
         @state = :offered
         @start_time = Time.now
@@ -66,17 +65,14 @@ module Switest
       # Actions
       def answer(wait: 5)
         return unless @state == :offered && inbound?
-        sendmsg("execute", "answer")
+        @session.command("api uuid_answer #{@id}")
         return unless wait
         wait_for_answer(timeout: wait)
       end
 
       def hangup(cause = "NORMAL_CLEARING", wait: 5)
         return if ended?
-        msg = +"sendmsg #{@id}\n"
-        msg << "call-command: hangup\n"
-        msg << "hangup-cause: #{cause}"
-        @connection.send_command(msg)
+        @session.command("api uuid_kill #{@id} #{cause}")
         return unless wait
         wait_for_end(timeout: wait)
       end
@@ -92,7 +88,11 @@ module Switest
       end
 
       def play_audio(url, wait: true)
-        sendmsg("execute", "playback", url, event_lock: wait)
+        if wait
+          @session.command("api uuid_broadcast #{@id} playback::#{url}")
+        else
+          @session.bgapi("uuid_broadcast #{@id} playback::#{url}")
+        end
       end
 
       def send_dtmf(digits, wait: true)
@@ -159,7 +159,27 @@ module Switest
         ended?
       end
 
-      # Internal state updates (called by Client)
+      # Internal: dispatch a librevox Response event to the appropriate handler.
+      def handle_event(response)
+        return unless response.event?
+
+        case response.event
+        when "CHANNEL_ANSWER"
+          handle_answer
+        when "CHANNEL_BRIDGE"
+          handle_bridge
+        when "CHANNEL_HANGUP", "CHANNEL_HANGUP_COMPLETE"
+          cause = response.content[:hangup_cause]
+          handle_hangup(cause, response.content)
+        when "CHANNEL_PARK"
+          # Park events can indicate the call is ready for control
+        when "DTMF"
+          digit = response.content[:dtmf_digit]
+          handle_dtmf(digit) if digit
+        end
+      end
+
+      # Internal state updates
       def handle_answer
         return if @state == :ended
         @state = :answered
@@ -175,12 +195,20 @@ module Switest
         fire_callbacks(:bridge)
       end
 
-      def handle_hangup(cause, headers = {})
+      def handle_hangup(cause, event_content = {})
         return if @state == :ended
         @state = :ended
         @end_time = Time.now
         @end_reason = cause
-        @headers.merge!(headers)
+
+        # Merge event data into headers
+        if event_content.is_a?(Hash)
+          event_content.each do |k, v|
+            next if k == :body
+            @headers[k] = v.to_s
+          end
+        end
+
         @answered_promise.resolve(true)
         @bridged_promise.resolve(true)
         @ended_promise.resolve(true)
@@ -193,18 +221,8 @@ module Switest
 
       private
 
-      def sendmsg(command, app = nil, arg = nil, event_lock: false)
-        msg = +"sendmsg #{@id}\n"
-        msg << "call-command: #{command}\n"
-        msg << "execute-app-name: #{app}\n" if app
-        msg << "execute-app-arg: #{arg}\n" if arg
-        msg << "event-lock: true\n" if event_lock
-        @connection.send_command(msg.chomp)
-      end
-
       def fire_callbacks(type)
         @callbacks[type].each { |cb| cb.call(self) }
       end
-    end
   end
 end

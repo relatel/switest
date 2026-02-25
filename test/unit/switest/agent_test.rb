@@ -5,8 +5,9 @@ require_relative "../../test_helper"
 class Switest::AgentTest < Minitest::Test
   def setup
     @events = Switest::Events.new
-    @connection = Switest::ESL::MockConnection.new
-    @client = Switest::ESL::Client.new(@connection)
+    @session = Switest::MockSession.new
+    @client = Switest::Client.new
+    @client.instance_variable_set(:@session, @session)
     Switest::Agent.setup(@client, @events)
   end
 
@@ -14,16 +15,20 @@ class Switest::AgentTest < Minitest::Test
     Switest::Agent.teardown
   end
 
+  def make_call(to: "71999999", from: "12345", id: "test-uuid")
+    Switest::Call.new(
+      id: id,
+      direction: :inbound,
+      to: to,
+      from: from,
+      session: @session
+    )
+  end
+
   def test_listen_for_call_without_conditions
     agent = Switest::Agent.listen_for_call
 
-    call = Switest::ESL::Call.new(
-      id: "test-uuid",
-      connection: @connection,
-      direction: :inbound,
-      to: "71999999",
-      from: "12345"
-    )
+    call = make_call
     @events.emit(:offer, { to: call.to, from: call.from, call: call })
 
     assert_equal call, agent.call
@@ -32,13 +37,7 @@ class Switest::AgentTest < Minitest::Test
   def test_with_conditions_matching
     agent = Switest::Agent.listen_for_call(to: /71999999/)
 
-    call = Switest::ESL::Call.new(
-      id: "test-uuid",
-      connection: @connection,
-      direction: :inbound,
-      to: "71999999",
-      from: "12345"
-    )
+    call = make_call
     @events.emit(:offer, { to: call.to, from: call.from, call: call })
 
     assert_equal call, agent.call
@@ -47,13 +46,7 @@ class Switest::AgentTest < Minitest::Test
   def test_with_conditions_not_matching
     agent = Switest::Agent.listen_for_call(to: /71999999/)
 
-    call = Switest::ESL::Call.new(
-      id: "test-uuid",
-      connection: @connection,
-      direction: :inbound,
-      to: "22334455",
-      from: "12345"
-    )
+    call = make_call(to: "22334455")
     @events.emit(:offer, { to: call.to, from: call.from, call: call })
 
     assert_nil agent.call
@@ -62,13 +55,7 @@ class Switest::AgentTest < Minitest::Test
   def test_wait_for_call_success
     agent = Switest::Agent.listen_for_call(to: /71999999/)
 
-    call = Switest::ESL::Call.new(
-      id: "test-uuid",
-      connection: @connection,
-      direction: :inbound,
-      to: "71999999",
-      from: "12345"
-    )
+    call = make_call
 
     Async do
       sleep 0.5
@@ -89,12 +76,7 @@ class Switest::AgentTest < Minitest::Test
   end
 
   def test_wait_for_answer
-    call = Switest::ESL::Call.new(
-      id: "test-uuid",
-      connection: @connection,
-      direction: :outbound,
-      to: "71999999"
-    )
+    call = make_call
     agent = Switest::Agent.new(call)
 
     Async do
@@ -108,12 +90,7 @@ class Switest::AgentTest < Minitest::Test
   end
 
   def test_wait_for_end
-    call = Switest::ESL::Call.new(
-      id: "test-uuid",
-      connection: @connection,
-      direction: :outbound,
-      to: "71999999"
-    )
+    call = make_call
     agent = Switest::Agent.new(call)
 
     Async do
@@ -127,30 +104,20 @@ class Switest::AgentTest < Minitest::Test
   end
 
   def test_answer_sends_command
-    call = Switest::ESL::Call.new(
-      id: "test-uuid",
-      connection: @connection,
-      direction: :inbound,
-      to: "71999999"
-    )
+    call = make_call
     agent = Switest::Agent.new(call)
 
     agent.answer(wait: false)
 
-    assert @connection.commands_sent.any? { |cmd| cmd.include?("answer") }
+    assert @session.commands_sent.any? { |cmd| cmd.include?("uuid_answer") }
   end
 
   def test_hangup_sends_command
-    call = Switest::ESL::Call.new(
-      id: "test-uuid",
-      connection: @connection,
-      direction: :inbound,
-      to: "71999999"
-    )
+    call = make_call
     agent = Switest::Agent.new(call)
 
     agent.hangup(wait: false)
 
-    assert @connection.commands_sent.any? { |cmd| cmd.include?("hangup") }
+    assert @session.commands_sent.any? { |cmd| cmd.include?("uuid_kill") }
   end
 end

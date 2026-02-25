@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
 module Switest
-  module ESL
-    # Escapes values for use in FreeSWITCH channel variable strings.
+  # Escapes values for use in FreeSWITCH channel variable strings.
     #
     # FreeSWITCH originate syntax: {var1=value1,var2=value2}endpoint
     #
@@ -139,6 +138,5 @@ module Switest
         # Fallback - this should rarely happen
         ":"
       end
-    end
   end
 end

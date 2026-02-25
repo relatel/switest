@@ -329,7 +329,7 @@ FREESWITCH_PASSWORD=ClueCon
 ## Dependencies
 
 - Ruby >= 3.0
-- concurrent-ruby ~> 1.2
+- librevox ~> 1.0
 - minitest >= 5.5, < 7.0
 
 ## License

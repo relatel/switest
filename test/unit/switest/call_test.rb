@@ -1,0 +1,351 @@
+# frozen_string_literal: true
+
+require_relative "../../test_helper"
+
+class Switest::CallTest < Minitest::Test
+  def setup
+    @session = Switest::MockSession.new
+  end
+
+  def make_call(direction: :inbound, id: "test-uuid")
+    Switest::Call.new(
+      id: id,
+      direction: direction,
+      session: @session
+    )
+  end
+
+  def make_event(event_name, content = {})
+    content = { event_name: event_name }.merge(content)
+    Struct.new(:headers, :content, :event) do
+      def event?
+        true
+      end
+    end.new({}, content, event_name)
+  end
+
+  def test_initial_state_is_offered
+    call = make_call
+
+    assert_equal :offered, call.state
+    assert call.alive?
+    refute call.active?
+    refute call.answered?
+    refute call.ended?
+  end
+
+  def test_handle_answer_transitions_to_answered
+    call = make_call
+
+    call.handle_answer
+
+    assert_equal :answered, call.state
+    assert call.alive?
+    assert call.active?
+    assert call.answered?
+    refute call.ended?
+    assert_instance_of Time, call.answer_time
+  end
+
+  def test_handle_hangup_transitions_to_ended
+    call = make_call
+
+    call.handle_hangup("NORMAL_CLEARING")
+
+    assert_equal :ended, call.state
+    refute call.alive?
+    refute call.active?
+    assert call.ended?
+    assert_equal "NORMAL_CLEARING", call.end_reason
+    assert_instance_of Time, call.end_time
+  end
+
+  def test_handle_hangup_merges_headers
+    call = make_call
+
+    call.handle_hangup("NORMAL_CLEARING", {
+      variable_billsec: "120",
+      variable_duration: "125"
+    })
+
+    assert_equal "120", call.headers[:variable_billsec]
+    assert_equal "125", call.headers[:variable_duration]
+  end
+
+  def test_answered_true_after_hangup_if_was_answered
+    call = make_call
+
+    call.handle_answer
+    call.handle_hangup("NORMAL_CLEARING")
+
+    assert call.answered?
+    assert call.ended?
+  end
+
+  def test_on_answer_callback
+    call = make_call
+
+    callback_called = false
+    call.on_answer { callback_called = true }
+    call.handle_answer
+
+    assert callback_called
+  end
+
+  def test_on_end_callback
+    call = make_call
+
+    callback_called = false
+    call.on_end { callback_called = true }
+    call.handle_hangup("NORMAL_CLEARING")
+
+    assert callback_called
+  end
+
+  def test_wait_for_answer_returns_true_on_answer
+    call = make_call
+
+    Async do
+      sleep 0.2
+      call.handle_answer
+    end
+
+    result = call.wait_for_answer(timeout: 1)
+    assert result
+  end
+
+  def test_wait_for_answer_returns_false_on_timeout
+    call = make_call
+
+    result = call.wait_for_answer(timeout: 0.2)
+    refute result
+  end
+
+  def test_wait_for_end_returns_true_on_hangup
+    call = make_call
+
+    Async do
+      sleep 0.2
+      call.handle_hangup("NORMAL_CLEARING")
+    end
+
+    result = call.wait_for_end(timeout: 1)
+    assert result
+  end
+
+  def test_handle_bridge_sets_bridged
+    call = make_call(direction: :outbound)
+
+    refute call.bridged?
+    call.handle_bridge
+    assert call.bridged?
+  end
+
+  def test_handle_bridge_ignored_after_hangup
+    call = make_call(direction: :outbound)
+
+    call.handle_hangup("NORMAL_CLEARING")
+    call.handle_bridge
+
+    refute call.bridged?, "Should not be bridged after hangup"
+  end
+
+  def test_on_bridge_callback
+    call = make_call(direction: :outbound)
+
+    callback_called = false
+    call.on_bridge { callback_called = true }
+    call.handle_bridge
+
+    assert callback_called
+  end
+
+  def test_wait_for_bridge_returns_true_on_bridge
+    call = make_call(direction: :outbound)
+
+    Async do
+      sleep 0.2
+      call.handle_bridge
+    end
+
+    result = call.wait_for_bridge(timeout: 1)
+    assert result
+  end
+
+  def test_wait_for_bridge_returns_false_on_timeout
+    call = make_call(direction: :outbound)
+
+    result = call.wait_for_bridge(timeout: 0.2)
+    refute result
+  end
+
+  def test_wait_for_bridge_unblocks_on_hangup
+    call = make_call(direction: :outbound)
+
+    Async do
+      sleep 0.2
+      call.handle_hangup("NORMAL_CLEARING")
+    end
+
+    # Should unblock even though bridge never happened
+    result = call.wait_for_bridge(timeout: 1)
+    refute result, "Should return false since call ended without bridging"
+  end
+
+  def test_dtmf_buffering
+    call = make_call
+
+    call.handle_dtmf("1")
+    call.handle_dtmf("2")
+    call.handle_dtmf("3")
+
+    digits = call.receive_dtmf(count: 3, timeout: 1)
+    assert_equal "123", digits
+  end
+
+  def test_flush_dtmf_clears_buffer
+    call = make_call
+
+    call.handle_dtmf("1")
+    call.handle_dtmf("2")
+    call.flush_dtmf
+
+    call.handle_dtmf("3")
+    digits = call.receive_dtmf(count: 1, timeout: 1)
+    assert_equal "3", digits
+  end
+
+  def test_dtmf_timeout
+    call = make_call
+
+    call.handle_dtmf("1")
+
+    digits = call.receive_dtmf(count: 3, timeout: 0.2)
+    assert_equal "1", digits
+  end
+
+  def test_inbound_outbound_direction
+    inbound = make_call(direction: :inbound)
+    outbound = make_call(direction: :outbound)
+
+    assert inbound.inbound?
+    refute inbound.outbound?
+    refute outbound.inbound?
+    assert outbound.outbound?
+  end
+
+  def test_answer_only_works_for_inbound_offered
+    inbound = make_call(direction: :inbound)
+    outbound = make_call(direction: :outbound)
+
+    inbound.answer(wait: false)
+    outbound.answer(wait: false)
+
+    # Only inbound should have sent the answer command
+    answer_commands = @session.commands_sent.select { |c| c.include?("uuid_answer") }
+    assert_equal 1, answer_commands.length
+  end
+
+  def test_hangup_sends_uuid_kill
+    call = make_call(direction: :outbound)
+
+    call.hangup("USER_BUSY", wait: false)
+
+    command = @session.commands_sent.last
+    assert_match(/api uuid_kill test-uuid USER_BUSY/, command)
+  end
+
+  def test_hangup_defaults_to_normal_clearing
+    call = make_call(direction: :outbound)
+
+    call.hangup(wait: false)
+
+    command = @session.commands_sent.last
+    assert_match(/api uuid_kill test-uuid NORMAL_CLEARING/, command)
+  end
+
+  def test_reject_busy_uses_user_busy_cause
+    call = make_call(direction: :inbound)
+
+    call.reject(:busy, wait: false)
+
+    command = @session.commands_sent.last
+    assert_match(/uuid_kill test-uuid USER_BUSY/, command)
+  end
+
+  def test_reject_decline_uses_call_rejected_cause
+    call = make_call(direction: :inbound)
+
+    call.reject(:decline, wait: false)
+
+    command = @session.commands_sent.last
+    assert_match(/uuid_kill test-uuid CALL_REJECTED/, command)
+  end
+
+  def test_send_dtmf_defaults_to_wait_true
+    call = make_call(direction: :outbound)
+
+    call.send_dtmf("123")
+
+    command = @session.commands_sent.last
+    assert_match(/api uuid_broadcast test-uuid playback::tone_stream/, command)
+    assert_match(%r{d=200;w=250;123}, command)
+  end
+
+  def test_send_dtmf_with_wait_false_uses_bgapi
+    call = make_call(direction: :outbound)
+
+    call.send_dtmf("123", wait: false)
+
+    command = @session.commands_sent.last
+    assert_match(/bgapi uuid_broadcast test-uuid playback::tone_stream/, command)
+    assert_match(%r{d=200;w=250;123}, command)
+  end
+
+  def test_play_audio_defaults_to_wait_true
+    call = make_call(direction: :outbound)
+
+    call.play_audio("/tmp/test.wav")
+
+    command = @session.commands_sent.last
+    assert_match(%r{api uuid_broadcast test-uuid playback::/tmp/test.wav}, command)
+  end
+
+  def test_play_audio_with_wait_false_uses_bgapi
+    call = make_call(direction: :outbound)
+
+    call.play_audio("/tmp/test.wav", wait: false)
+
+    command = @session.commands_sent.last
+    assert_match(%r{bgapi uuid_broadcast test-uuid playback::/tmp/test.wav}, command)
+  end
+
+  def test_handle_event_dispatches_answer
+    call = make_call(direction: :outbound)
+    event = make_event("CHANNEL_ANSWER", unique_id: "test-uuid")
+
+    call.handle_event(event)
+
+    assert call.answered?
+  end
+
+  def test_handle_event_dispatches_dtmf
+    call = make_call(direction: :outbound)
+    event = make_event("DTMF", unique_id: "test-uuid", dtmf_digit: "5")
+
+    call.handle_event(event)
+
+    digits = call.receive_dtmf(count: 1, timeout: 0.1)
+    assert_equal "5", digits
+  end
+
+  def test_handle_event_dispatches_hangup
+    call = make_call(direction: :outbound)
+    event = make_event("CHANNEL_HANGUP_COMPLETE", unique_id: "test-uuid", hangup_cause: "NORMAL_CLEARING")
+
+    call.handle_event(event)
+
+    assert call.ended?
+    assert_equal "NORMAL_CLEARING", call.end_reason
+  end
+end
