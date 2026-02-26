@@ -6,223 +6,221 @@ require "async/queue"
 
 module Switest
   class Call
-      attr_reader :id, :to, :from, :headers, :direction
-      attr_reader :start_time, :answer_time, :end_time, :end_reason
-      attr_reader :state
+    attr_reader :id, :to, :from, :headers, :direction
+    attr_reader :start_time, :answer_time, :end_time, :end_reason
+    attr_reader :state
 
-      def initialize(id:, direction:, to: nil, from: nil, headers: {}, session: nil)
-        @id = id
-        @session = session
-        @direction = direction  # :inbound or :outbound
-        @to = to
-        @from = from
-        @headers = headers.is_a?(Hash) ? headers.dup : {}
+    def initialize(id:, direction:, to: nil, from: nil, headers: {}, session: nil)
+      @id = id
+      @session = session
+      @direction = direction  # :inbound or :outbound
+      @to = to
+      @from = from
+      @headers = headers.is_a?(Hash) ? headers.dup : {}
 
-        @state = :offered
-        @start_time = Time.now
-        @answer_time = nil
-        @end_time = nil
-        @end_reason = nil
+      @state = :offered
+      @start_time = Time.now
+      @answer_time = nil
+      @end_time = nil
+      @end_reason = nil
 
-        @bridged = false
-        @dtmf_queue = Async::Queue.new
-        @callbacks = { answer: [], bridge: [], end: [] }
+      @bridged = false
+      @dtmf_queue = Async::Queue.new
+      @callbacks = { answer: [], bridge: [], end: [] }
 
-        @answered_promise = Async::Promise.new
-        @bridged_promise = Async::Promise.new
-        @ended_promise = Async::Promise.new
+      @answered_promise = Async::Promise.new
+      @bridged_promise = Async::Promise.new
+      @ended_promise = Async::Promise.new
+    end
+
+    # State queries
+    def alive?
+      @state != :ended
+    end
+
+    def active?
+      @state == :answered
+    end
+
+    def answered?
+      @state == :answered || (@state == :ended && @answer_time)
+    end
+
+    def ended?
+      @state == :ended
+    end
+
+    def bridged?
+      @bridged
+    end
+
+    def inbound?
+      @direction == :inbound
+    end
+
+    def outbound?
+      @direction == :outbound
+    end
+
+    # Actions
+    def answer(wait: 5)
+      return unless @state == :offered && inbound?
+      @session.command("api uuid_answer #{@id}")
+      return unless wait
+      wait_for_answer(timeout: wait)
+    end
+
+    def hangup(cause = "NORMAL_CLEARING", wait: 5)
+      return if ended?
+      @session.command("api uuid_kill #{@id} #{cause}")
+      return unless wait
+      wait_for_end(timeout: wait)
+    end
+
+    def reject(reason = :decline, wait: 5)
+      return unless @state == :offered && inbound?
+      cause = case reason
+              when :busy then "USER_BUSY"
+              when :decline then "CALL_REJECTED"
+              else "CALL_REJECTED"
+              end
+      hangup(cause, wait: wait)
+    end
+
+    def play_audio(url, wait: true)
+      if wait
+        @session.command("api uuid_broadcast #{@id} playback::#{url}")
+      else
+        @session.bgapi("uuid_broadcast #{@id} playback::#{url}")
       end
+    end
 
-      # State queries
-      def alive?
-        @state != :ended
-      end
+    def send_dtmf(digits, wait: true)
+      play_audio("tone_stream://d=200;w=250;#{digits}", wait: wait)
+    end
 
-      def active?
-        @state == :answered
-      end
+    def flush_dtmf
+      @dtmf_queue.dequeue until @dtmf_queue.empty?
+    end
 
-      def answered?
-        @state == :answered || (@state == :ended && @answer_time)
-      end
+    def receive_dtmf(count: 1, timeout: 5)
+      digits = String.new
+      deadline = Time.now + timeout
 
-      def ended?
-        @state == :ended
-      end
+      count.times do
+        remaining = deadline - Time.now
+        break if remaining <= 0
 
-      def bridged?
-        @bridged
-      end
-
-      def inbound?
-        @direction == :inbound
-      end
-
-      def outbound?
-        @direction == :outbound
-      end
-
-      # Actions
-      def answer(wait: 5)
-        return unless @state == :offered && inbound?
-        @session.command("api uuid_answer #{@id}")
-        return unless wait
-        wait_for_answer(timeout: wait)
-      end
-
-      def hangup(cause = "NORMAL_CLEARING", wait: 5)
-        return if ended?
-        @session.command("api uuid_kill #{@id} #{cause}")
-        return unless wait
-        wait_for_end(timeout: wait)
-      end
-
-      def reject(reason = :decline, wait: 5)
-        return unless @state == :offered && inbound?
-        cause = case reason
-                when :busy then "USER_BUSY"
-                when :decline then "CALL_REJECTED"
-                else "CALL_REJECTED"
-                end
-        hangup(cause, wait: wait)
-      end
-
-      def play_audio(url, wait: true)
-        if wait
-          @session.command("api uuid_broadcast #{@id} playback::#{url}")
-        else
-          @session.bgapi("uuid_broadcast #{@id} playback::#{url}")
+        Async::Task.current.with_timeout(remaining) do
+          digits << @dtmf_queue.dequeue
         end
-      end
-
-      def send_dtmf(digits, wait: true)
-        play_audio("tone_stream://d=200;w=250;#{digits}", wait: wait)
-      end
-
-      def flush_dtmf
-        @dtmf_queue.dequeue until @dtmf_queue.empty?
-      end
-
-      def receive_dtmf(count: 1, timeout: 5)
-        digits = String.new
-        deadline = Time.now + timeout
-
-        count.times do
-          remaining = deadline - Time.now
-          break if remaining <= 0
-
-          Async::Task.current.with_timeout(remaining) do
-            digits << @dtmf_queue.dequeue
-          end
-        rescue Async::TimeoutError
-          break
-        end
-
-        digits
-      end
-
-      # Callbacks
-      def on_answer(&block)
-        @callbacks[:answer] << block
-      end
-
-      def on_bridge(&block)
-        @callbacks[:bridge] << block
-      end
-
-      def on_end(&block)
-        @callbacks[:end] << block
-      end
-
-      # Blocking waits
-      def wait_for_answer(timeout: 5)
-        return true if answered?
-        Async::Task.current.with_timeout(timeout) { @answered_promise.wait }
-        answered?
       rescue Async::TimeoutError
-        answered?
+        break
       end
 
-      def wait_for_bridge(timeout: 5)
-        return true if bridged?
-        Async::Task.current.with_timeout(timeout) { @bridged_promise.wait }
-        bridged?
-      rescue Async::TimeoutError
-        bridged?
+      digits
+    end
+
+    # Callbacks
+    def on_answer(&block)
+      @callbacks[:answer] << block
+    end
+
+    def on_bridge(&block)
+      @callbacks[:bridge] << block
+    end
+
+    def on_end(&block)
+      @callbacks[:end] << block
+    end
+
+    # Blocking waits
+    def wait_for_answer(timeout: 5)
+      return true if answered?
+      Async::Task.current.with_timeout(timeout) { @answered_promise.wait }
+      answered?
+    rescue Async::TimeoutError
+      answered?
+    end
+
+    def wait_for_bridge(timeout: 5)
+      return true if bridged?
+      Async::Task.current.with_timeout(timeout) { @bridged_promise.wait }
+      bridged?
+    rescue Async::TimeoutError
+      bridged?
+    end
+
+    def wait_for_end(timeout: 5)
+      return true if ended?
+      Async::Task.current.with_timeout(timeout) { @ended_promise.wait }
+      ended?
+    rescue Async::TimeoutError
+      ended?
+    end
+
+    # Internal: dispatch a librevox Response event to the appropriate handler.
+    def handle_event(response)
+      return unless response.event?
+
+      case response.event
+      when "CHANNEL_ANSWER"
+        handle_answer
+      when "CHANNEL_BRIDGE"
+        handle_bridge
+      when "CHANNEL_HANGUP", "CHANNEL_HANGUP_COMPLETE"
+        cause = response.content[:hangup_cause]
+        handle_hangup(cause, response.content)
+      when "DTMF"
+        digit = response.content[:dtmf_digit]
+        handle_dtmf(digit) if digit
       end
+    end
 
-      def wait_for_end(timeout: 5)
-        return true if ended?
-        Async::Task.current.with_timeout(timeout) { @ended_promise.wait }
-        ended?
-      rescue Async::TimeoutError
-        ended?
-      end
+    # Internal state updates
+    def handle_answer
+      return if @state == :ended
+      @state = :answered
+      @answer_time = Time.now
+      @answered_promise.resolve(true)
+      fire_callbacks(:answer)
+    end
 
-      # Internal: dispatch a librevox Response event to the appropriate handler.
-      def handle_event(response)
-        return unless response.event?
+    def handle_bridge
+      return if @state == :ended
+      @bridged = true
+      @bridged_promise.resolve(true)
+      fire_callbacks(:bridge)
+    end
 
-        case response.event
-        when "CHANNEL_ANSWER"
-          handle_answer
-        when "CHANNEL_BRIDGE"
-          handle_bridge
-        when "CHANNEL_HANGUP", "CHANNEL_HANGUP_COMPLETE"
-          cause = response.content[:hangup_cause]
-          handle_hangup(cause, response.content)
-        when "CHANNEL_PARK"
-          # Park events can indicate the call is ready for control
-        when "DTMF"
-          digit = response.content[:dtmf_digit]
-          handle_dtmf(digit) if digit
+    def handle_hangup(cause, event_content = {})
+      return if @state == :ended
+      @state = :ended
+      @end_time = Time.now
+      @end_reason = cause
+
+      # Merge event data into headers
+      if event_content.is_a?(Hash)
+        event_content.each do |k, v|
+          next if k == :body
+          @headers[k] = v.to_s
         end
       end
 
-      # Internal state updates
-      def handle_answer
-        return if @state == :ended
-        @state = :answered
-        @answer_time = Time.now
-        @answered_promise.resolve(true)
-        fire_callbacks(:answer)
-      end
+      @answered_promise.resolve(true)
+      @bridged_promise.resolve(true)
+      @ended_promise.resolve(true)
+      fire_callbacks(:end)
+    end
 
-      def handle_bridge
-        return if @state == :ended
-        @bridged = true
-        @bridged_promise.resolve(true)
-        fire_callbacks(:bridge)
-      end
+    def handle_dtmf(digit)
+      @dtmf_queue.enqueue(digit)
+    end
 
-      def handle_hangup(cause, event_content = {})
-        return if @state == :ended
-        @state = :ended
-        @end_time = Time.now
-        @end_reason = cause
+    private
 
-        # Merge event data into headers
-        if event_content.is_a?(Hash)
-          event_content.each do |k, v|
-            next if k == :body
-            @headers[k] = v.to_s
-          end
-        end
-
-        @answered_promise.resolve(true)
-        @bridged_promise.resolve(true)
-        @ended_promise.resolve(true)
-        fire_callbacks(:end)
-      end
-
-      def handle_dtmf(digit)
-        @dtmf_queue.enqueue(digit)
-      end
-
-      private
-
-      def fire_callbacks(type)
-        @callbacks[type].each { |cb| cb.call(self) }
-      end
+    def fire_callbacks(type)
+      @callbacks[type].each { |cb| cb.call(self) }
+    end
   end
 end

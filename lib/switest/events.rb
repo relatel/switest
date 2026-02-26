@@ -1,64 +1,36 @@
 # frozen_string_literal: true
 
 module Switest
-  # Custom EventEmitter with guard support for conditional event handling.
-  # Supports hash equality, regex, array membership, and proc guards.
+  # Lightweight one-shot event emitter with guard support for conditional
+  # event handling. Supports hash equality, regex, array membership, and
+  # proc guards.
+  #
+  # Used for routing inbound call offers from Client to Agent.listen_for_call.
   class Events
     def initialize
       @handlers = Hash.new { |h, k| h[k] = [] }
-      @handler_id = 0
-    end
-
-    # Register a permanent event handler with optional guards
-    def on(event, guards = {}, &block)
-      @handler_id += 1
-      @handlers[event] << {
-        id: @handler_id,
-        guards: guards,
-        callback: block,
-        once: false
-      }
-      @handler_id
     end
 
     # Register a one-time event handler with optional guards
     def once(event, guards = {}, &block)
-      @handler_id += 1
-      @handlers[event] << {
-        id: @handler_id,
-        guards: guards,
-        callback: block,
-        once: true
-      }
-      @handler_id
+      @handlers[event] << { guards: guards, callback: block }
     end
 
-    # Emit an event, triggering all matching handlers
+    # Emit an event, triggering and removing all matching handlers
     def emit(event, data = {})
-      handlers_to_call = []
-      handlers_to_remove = []
+      matched = []
+      remaining = []
 
       @handlers[event].each do |handler|
         if guards_match?(handler[:guards], data)
-          handlers_to_call << handler
-          handlers_to_remove << handler[:id] if handler[:once]
+          matched << handler
+        else
+          remaining << handler
         end
       end
 
-      handlers_to_call.each { |handler| handler[:callback].call(data) }
-
-      handlers_to_remove.each do |id|
-        @handlers[event].reject! { |h| h[:id] == id }
-      end
-    end
-
-    # Remove handler(s) for an event
-    def off(event, handler_id = nil)
-      if handler_id
-        @handlers[event].reject! { |h| h[:id] == handler_id }
-      else
-        @handlers.delete(event)
-      end
+      @handlers[event] = remaining
+      matched.each { |handler| handler[:callback].call(data) }
     end
 
     private

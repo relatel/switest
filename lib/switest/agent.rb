@@ -33,8 +33,7 @@ module Switest
 
         # Register a one-time handler for matching inbound calls
         @events.once(:offer, guards) do |data|
-          agent.instance_variable_set(:@call, data[:call])
-          agent.instance_variable_get(:@call_promise).resolve(true)
+          agent.receive_call(data[:call])
         end
 
         agent
@@ -122,6 +121,22 @@ module Switest
       @call&.ended? || false
     end
 
+    def bridged?
+      @call&.bridged? || false
+    end
+
+    def outbound?
+      @call&.outbound? || false
+    end
+
+    def inbound?
+      @call&.inbound? || false
+    end
+
+    def id
+      @call&.id
+    end
+
     def start_time
       @call&.start_time
     end
@@ -130,8 +145,22 @@ module Switest
       @call&.answer_time
     end
 
+    def end_time
+      @call&.end_time
+    end
+
     def end_reason
       @call&.end_reason
+    end
+
+    def headers
+      @call&.headers
+    end
+
+    # @api private — called by listen_for_call handler
+    def receive_call(call)
+      @call = call
+      @call_promise.resolve(true)
     end
   end
 end

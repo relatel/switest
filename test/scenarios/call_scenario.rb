@@ -13,7 +13,7 @@ class CallIntegrationTest < Switest::Scenario
     alice = Agent.dial("loopback/echo/public")
 
     assert alice.call?, "Agent should have a call after dial"
-    assert alice.call.outbound?, "Call should be outbound"
+    assert alice.outbound?, "Call should be outbound"
 
     alice.hangup
     assert_hungup(alice)
@@ -32,20 +32,20 @@ class CallIntegrationTest < Switest::Scenario
   def test_call_state_transitions
     alice = Agent.dial("loopback/echo/public")
 
-    assert alice.call.alive?, "Call should be alive"
+    assert alice.alive?, "Call should be alive"
 
     assert_answered(alice)
-    assert alice.call.active?, "Call should be active after answer"
-    assert alice.call.answered?, "Call should be answered"
-    refute alice.call.ended?, "Call should not be ended"
+    assert alice.active?, "Call should be active after answer"
+    assert alice.answered?, "Call should be answered"
+    refute alice.ended?, "Call should not be ended"
 
     alice.hangup
     assert_hungup(alice)
 
-    assert alice.call.ended?, "Call should be ended"
-    refute alice.call.alive?, "Call should not be alive"
-    refute alice.call.active?, "Call should not be active"
-    assert alice.call.answered?, "Call should still show as was-answered"
+    assert alice.ended?, "Call should be ended"
+    refute alice.alive?, "Call should not be alive"
+    refute alice.active?, "Call should not be active"
+    assert alice.answered?, "Call should still show as was-answered"
   end
 
   def test_call_timestamps
@@ -61,8 +61,8 @@ class CallIntegrationTest < Switest::Scenario
     alice.hangup
     assert_hungup(alice)
 
-    assert alice.call.end_time, "Call should have end_time"
-    assert alice.call.end_time >= alice.answer_time, "end_time should be >= answer_time"
+    assert alice.end_time, "Call should have end_time"
+    assert alice.end_time >= alice.answer_time, "end_time should be >= answer_time"
   end
 
   def test_call_end_reason
@@ -84,7 +84,7 @@ class CallIntegrationTest < Switest::Scenario
 
     bob = Agent.dial("loopback/echo/public")
     assert_answered(bob)
-    refute_equal alice.call.id, bob.call.id, "Calls should have different IDs"
+    refute_equal alice.id, bob.id, "Calls should have different IDs"
 
     bob.hangup
     assert_hungup(bob)
@@ -108,7 +108,7 @@ class CallIntegrationTest < Switest::Scenario
     assert_answered(alice)
 
     # Try to receive 5 digits but only 2 will arrive
-    digits = alice.call.receive_dtmf(count: 5, timeout: 3)
+    digits = alice.receive_dtmf(count: 5, timeout: 3)
     assert_equal "12", digits, "Should receive partial DTMF digits"
 
     alice.hangup
@@ -125,7 +125,7 @@ class CallIntegrationTest < Switest::Scenario
     assert alice.call?, "Alice should have outbound call"
 
     assert_call(bob)
-    assert bob.call.inbound?, "Bob's call should be inbound"
+    assert bob.inbound?, "Bob's call should be inbound"
 
     bob.answer
     assert_answered(alice)
@@ -155,7 +155,7 @@ class CallIntegrationTest < Switest::Scenario
 
     assert alice.call?, "Alice should have a call"
     assert bob.call?, "Bob should have a call"
-    refute_equal alice.call.id, bob.call.id, "Calls should have different IDs"
+    refute_equal alice.id, bob.id, "Calls should have different IDs"
 
     assert_answered(alice, timeout: 10)
     assert_answered(bob, timeout: 10)
@@ -232,7 +232,7 @@ class CallIntegrationTest < Switest::Scenario
 
     assert alice.call?, "Alice should have a call"
     assert bob.call?, "Bob should have a call"
-    refute_equal alice.call.id, bob.call.id, "Calls should have different IDs"
+    refute_equal alice.id, bob.id, "Calls should have different IDs"
 
     assert_answered(alice)
     assert_answered(bob)
@@ -329,7 +329,7 @@ class CallIntegrationTest < Switest::Scenario
     alice.hangup
     assert_hungup(alice)
 
-    assert alice.call.headers[:hangup_cause], "Should have :hangup_cause header"
-    assert_equal "NORMAL_CLEARING", alice.call.headers[:hangup_cause]
+    assert alice.headers[:hangup_cause], "Should have :hangup_cause header"
+    assert_equal "NORMAL_CLEARING", alice.headers[:hangup_cause]
   end
 end
