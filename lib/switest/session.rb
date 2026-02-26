@@ -6,8 +6,8 @@ require "async/promise"
 module Switest
   # Inbound ESL session built on librevox.
   #
-  # A single connection to FreeSWITCH that handles both commands (bgapi originate)
-  # and events (filtered by UUID). Events are dispatched to Call objects via the
+  # A single connection to FreeSWITCH that handles both commands and events
+  # (filtered by UUID). Events are dispatched to Call objects via the
   # call_registry. Unknown CHANNEL_PARK events trigger the offer_handler for
   # inbound call detection.
   class Session < Librevox::Listener::Inbound

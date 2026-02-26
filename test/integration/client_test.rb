@@ -52,7 +52,7 @@ class ClientIntegrationTest < Minitest::Test
 
     # Dialing an invalid destination should create a call object
     # but the call will fail (no actual SIP endpoint)
-    # With inbound ESL, the bgapi will return but the call won't progress
+    # The originate will return but the call won't progress
     call = @client.dial(to: "error/]]invalid[[")
 
     # The call was created but will likely fail
