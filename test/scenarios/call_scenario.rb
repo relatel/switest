@@ -45,7 +45,8 @@ class CallIntegrationTest < Switest::Scenario
     assert alice.ended?, "Call should be ended"
     refute alice.alive?, "Call should not be alive"
     refute alice.active?, "Call should not be active"
-    assert alice.answered?, "Call should still show as was-answered"
+    refute alice.answered?, "answered? should be false after hangup"
+    assert alice.answer_time, "answer_time should still be set"
   end
 
   def test_call_timestamps
@@ -308,9 +309,9 @@ class CallIntegrationTest < Switest::Scenario
   end
 
   def test_inbound_answer_connects_loopback
-    bob = Agent.listen_for_call(to: /bridge_echo/)
+    bob = Agent.listen_for_call(to: /test/)
 
-    alice = Agent.dial("loopback/bridge_echo/public")
+    alice = Agent.dial("loopback/bridge_test/public")
 
     assert_call(bob)
 

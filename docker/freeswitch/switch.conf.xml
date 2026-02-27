@@ -1,0 +1,6 @@
+<configuration name="switch.conf" description="Core Configuration">
+  <settings>
+    <param name="sessions-per-second" value="200"/>
+    <param name="max-sessions" value="1000"/>
+  </settings>
+</configuration>

@@ -7,6 +7,7 @@ services:
     volumes:
       - ./docker/freeswitch/event_socket.conf.xml:/etc/freeswitch/autoload_configs/event_socket.conf.xml:ro
       - ./docker/freeswitch/acl.conf.xml:/etc/freeswitch/autoload_configs/acl.conf.xml:ro
+      - ./docker/freeswitch/switch.conf.xml:/etc/freeswitch/autoload_configs/switch.conf.xml:ro
       - ./docker/freeswitch/dialplan.xml:/etc/freeswitch/dialplan/public/00_switest.xml:ro
     healthcheck:
       test: ["CMD", "fs_cli", "-x", "status"]

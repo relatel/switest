@@ -31,7 +31,7 @@ module Switest
       call = self.class.call_registry&.[](uuid)
 
       case event.event
-      when "CHANNEL_ANSWER", "CHANNEL_BRIDGE",
+      when "CHANNEL_ANSWER", "CHANNEL_CALLSTATE",
            "CHANNEL_HANGUP_COMPLETE", "DTMF"
         call&.handle_event(event)
       when "CHANNEL_PARK"

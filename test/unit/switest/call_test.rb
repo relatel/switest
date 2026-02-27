@@ -34,15 +34,15 @@ class Switest::CallTest < Minitest::Test
     refute call.ended?
   end
 
-  def test_handle_answer_transitions_to_answered
+  def test_handle_answer_transitions_to_ringing
     call = make_call
 
     call.handle_answer
 
-    assert_equal :answered, call.state
+    assert_equal :ringing, call.state
     assert call.alive?
-    assert call.active?
-    assert call.answered?
+    refute call.active?
+    refute call.answered?
     refute call.ended?
     assert_instance_of Time, call.answer_time
   end
@@ -72,14 +72,16 @@ class Switest::CallTest < Minitest::Test
     assert_equal "125", call.headers[:variable_duration]
   end
 
-  def test_answered_true_after_hangup_if_was_answered
+  def test_answered_false_after_hangup
     call = make_call
 
     call.handle_answer
+    call.handle_callstate("ACTIVE")
     call.handle_hangup("NORMAL_CLEARING")
 
-    assert call.answered?
+    refute call.answered?, "answered? should be false after hangup"
     assert call.ended?
+    assert_instance_of Time, call.answer_time, "answer_time should still be set"
   end
 
   def test_on_answer_callback
@@ -88,6 +90,7 @@ class Switest::CallTest < Minitest::Test
     callback_called = false
     call.on_answer { callback_called = true }
     call.handle_answer
+    call.handle_callstate("ACTIVE")
 
     assert callback_called
   end
@@ -102,12 +105,14 @@ class Switest::CallTest < Minitest::Test
     assert callback_called
   end
 
-  def test_wait_for_answer_returns_true_on_answer
+  def test_wait_for_answer_returns_true_on_active
     call = make_call
 
     Async do
-      sleep 0.2
+      sleep 0.1
       call.handle_answer
+      sleep 0.1
+      call.handle_callstate("ACTIVE")
     end
 
     result = call.wait_for_answer(timeout: 1)
@@ -133,63 +138,51 @@ class Switest::CallTest < Minitest::Test
     assert result
   end
 
-  def test_handle_bridge_sets_bridged
-    call = make_call(direction: :outbound)
+  def test_handle_callstate_active_transitions_to_answered
+    call = make_call
 
-    refute call.bridged?
-    call.handle_bridge
-    assert call.bridged?
+    call.handle_answer
+    assert_equal :ringing, call.state
+    refute call.answered?
+
+    call.handle_callstate("ACTIVE")
+    assert_equal :answered, call.state
+    assert call.answered?
+    assert call.active?
   end
 
-  def test_handle_bridge_ignored_after_hangup
-    call = make_call(direction: :outbound)
+  def test_handle_callstate_ignored_after_hangup
+    call = make_call
 
     call.handle_hangup("NORMAL_CLEARING")
-    call.handle_bridge
+    call.handle_callstate("ACTIVE")
 
-    refute call.bridged?, "Should not be bridged after hangup"
+    refute call.answered?, "Should not be answered after hangup"
   end
 
-  def test_on_bridge_callback
-    call = make_call(direction: :outbound)
+  def test_handle_callstate_ignores_non_active
+    call = make_call
 
-    callback_called = false
-    call.on_bridge { callback_called = true }
-    call.handle_bridge
+    call.handle_answer
+    call.handle_callstate("RINGING")
 
-    assert callback_called
+    assert_equal :ringing, call.state
+    refute call.answered?
   end
 
-  def test_wait_for_bridge_returns_true_on_bridge
-    call = make_call(direction: :outbound)
+  def test_wait_for_answer_waits_for_active
+    call = make_call
 
     Async do
-      sleep 0.2
-      call.handle_bridge
+      sleep 0.1
+      call.handle_answer
+      sleep 0.1
+      call.handle_callstate("ACTIVE")
     end
 
-    result = call.wait_for_bridge(timeout: 1)
+    result = call.wait_for_answer(timeout: 1)
     assert result
-  end
-
-  def test_wait_for_bridge_returns_false_on_timeout
-    call = make_call(direction: :outbound)
-
-    result = call.wait_for_bridge(timeout: 0.2)
-    refute result
-  end
-
-  def test_wait_for_bridge_unblocks_on_hangup
-    call = make_call(direction: :outbound)
-
-    Async do
-      sleep 0.2
-      call.handle_hangup("NORMAL_CLEARING")
-    end
-
-    # Should unblock even though bridge never happened
-    result = call.wait_for_bridge(timeout: 1)
-    refute result, "Should return false since call ended without bridging"
+    assert call.answered?
   end
 
   def test_dtmf_buffering
@@ -342,12 +335,13 @@ class Switest::CallTest < Minitest::Test
     refute_match(/event-lock/, command)
   end
 
-  def test_handle_event_dispatches_answer
+  def test_handle_event_dispatches_answer_and_callstate
     call = make_call(direction: :outbound)
-    event = make_event("CHANNEL_ANSWER", unique_id: "test-uuid")
 
-    call.handle_event(event)
+    call.handle_event(make_event("CHANNEL_ANSWER", unique_id: "test-uuid"))
+    assert_equal :ringing, call.state
 
+    call.handle_event(make_event("CHANNEL_CALLSTATE", unique_id: "test-uuid", channel_call_state: "ACTIVE"))
     assert call.answered?
   end
 

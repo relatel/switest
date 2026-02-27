@@ -24,12 +24,10 @@ module Switest
       @end_time = nil
       @end_reason = nil
 
-      @bridged = false
       @dtmf_queue = Async::Queue.new
-      @callbacks = { answer: [], bridge: [], end: [] }
+      @callbacks = { answer: [], end: [] }
 
       @answered_promise = Async::Promise.new
-      @bridged_promise = Async::Promise.new
       @ended_promise = Async::Promise.new
     end
 
@@ -43,15 +41,11 @@ module Switest
     end
 
     def answered?
-      @state == :answered || (@state == :ended && @answer_time)
+      @state == :answered
     end
 
     def ended?
       @state == :ended
-    end
-
-    def bridged?
-      @bridged
     end
 
     def inbound?
@@ -122,10 +116,6 @@ module Switest
       @callbacks[:answer] << block
     end
 
-    def on_bridge(&block)
-      @callbacks[:bridge] << block
-    end
-
     def on_end(&block)
       @callbacks[:end] << block
     end
@@ -137,14 +127,6 @@ module Switest
       answered?
     rescue Async::TimeoutError
       answered?
-    end
-
-    def wait_for_bridge(timeout: 5)
-      return true if bridged?
-      Async::Task.current.with_timeout(timeout) { @bridged_promise.wait }
-      bridged?
-    rescue Async::TimeoutError
-      bridged?
     end
 
     def wait_for_end(timeout: 5)
@@ -162,8 +144,8 @@ module Switest
       case response.event
       when "CHANNEL_ANSWER"
         handle_answer
-      when "CHANNEL_BRIDGE"
-        handle_bridge
+      when "CHANNEL_CALLSTATE"
+        handle_callstate(response.content[:channel_call_state])
       when "CHANNEL_HANGUP_COMPLETE"
         cause = response.content[:hangup_cause]
         handle_hangup(cause, response.content)
@@ -176,17 +158,17 @@ module Switest
     # Internal state updates
     def handle_answer
       return if @state == :ended
-      @state = :answered
+      @state = :ringing
       @answer_time = Time.now
-      @answered_promise.resolve(true)
-      fire_callbacks(:answer)
     end
 
-    def handle_bridge
+    def handle_callstate(call_state)
       return if @state == :ended
-      @bridged = true
-      @bridged_promise.resolve(true)
-      fire_callbacks(:bridge)
+      return unless call_state == "ACTIVE"
+
+      @state = :answered
+      @answered_promise.resolve(true)
+      fire_callbacks(:answer)
     end
 
     def handle_hangup(cause, event_content = {})
@@ -204,7 +186,6 @@ module Switest
       end
 
       @answered_promise.resolve(true)
-      @bridged_promise.resolve(true)
       @ended_promise.resolve(true)
       fire_callbacks(:end)
     end

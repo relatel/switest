@@ -80,8 +80,10 @@ class Switest::AgentTest < Minitest::Test
     agent = Switest::Agent.new(call)
 
     Async do
-      sleep 0.5
+      sleep 0.2
       call.handle_answer
+      sleep 0.1
+      call.handle_callstate("ACTIVE")
     end
 
     result = agent.wait_for_answer(timeout: 2)

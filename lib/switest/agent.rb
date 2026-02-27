@@ -94,11 +94,6 @@ module Switest
       @call.wait_for_answer(timeout: timeout)
     end
 
-    def wait_for_bridge(timeout: 5)
-      raise "No call to wait for" unless @call
-      @call.wait_for_bridge(timeout: timeout)
-    end
-
     def wait_for_end(timeout: 5)
       raise "No call to wait for" unless @call
       @call.wait_for_end(timeout: timeout)
@@ -119,10 +114,6 @@ module Switest
 
     def ended?
       @call&.ended? || false
-    end
-
-    def bridged?
-      @call&.bridged? || false
     end
 
     def outbound?

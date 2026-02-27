@@ -40,23 +40,9 @@ class ScenarioIntegrationTest < Switest::Scenario
     refute agent.call?, "Agent should not have a call"
   end
 
-  def test_both_legs_see_bridge_event
-    bob = Agent.listen_for_call(to: /test/)
-    alice = Agent.dial("loopback/bridge_test/public")
-
-    assert_call(bob)
-    bob.answer
-
-    assert_bridged(alice)
-    assert_bridged(bob)
-
-    alice.hangup
-    assert_hungup(alice)
-  end
-
   def test_wait_for_call_returns_true_on_subsequent_calls
-    bob = Agent.listen_for_call(to: /echo/)
-    alice = Agent.dial("loopback/echo/public")
+    bob = Agent.listen_for_call(to: /inbound_test/)
+    alice = Agent.dial("loopback/inbound_test/public")
 
     assert bob.wait_for_call(timeout: 5), "First wait_for_call should return true"
     assert bob.wait_for_call(timeout: 1), "Second wait_for_call should return true instantly"

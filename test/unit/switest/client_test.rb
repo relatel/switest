@@ -226,6 +226,7 @@ class Switest::ClientTest < Minitest::Test
     call_b = @client.dial(to: "sofia/gateway/test/222")
 
     call_a.handle_answer
+    call_a.handle_callstate("ACTIVE")
 
     assert call_a.answered?, "Call A should be answered"
     refute call_b.answered?, "Call B should NOT be answered"
