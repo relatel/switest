@@ -88,9 +88,7 @@ class Switest::CallTest < Minitest::Test
     call = make_call
 
     Async do
-      sleep 0.1
       call.handle_callstate("RINGING")
-      sleep 0.1
       call.handle_callstate("ACTIVE")
     end
 
@@ -101,7 +99,7 @@ class Switest::CallTest < Minitest::Test
   def test_wait_for_answer_returns_false_on_timeout
     call = make_call
 
-    result = call.wait_for_answer(timeout: 0.2)
+    result = call.wait_for_answer(timeout: 0.01)
     refute result
   end
 
@@ -109,7 +107,6 @@ class Switest::CallTest < Minitest::Test
     call = make_call
 
     Async do
-      sleep 0.2
       call.handle_hangup("NORMAL_CLEARING")
     end
 
@@ -153,9 +150,7 @@ class Switest::CallTest < Minitest::Test
     call = make_call
 
     Async do
-      sleep 0.1
       call.handle_callstate("RINGING")
-      sleep 0.1
       call.handle_callstate("ACTIVE")
     end
 
@@ -192,7 +187,7 @@ class Switest::CallTest < Minitest::Test
 
     call.handle_dtmf("1")
 
-    digits = call.receive_dtmf(count: 3, timeout: 0.2)
+    digits = call.receive_dtmf(count: 3, timeout: 0.01)
     assert_equal "1", digits
   end
 

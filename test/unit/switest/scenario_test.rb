@@ -43,7 +43,7 @@ class Switest::ScenarioTest < Minitest::Test
     agent = Switest::Agent.listen_for_call
 
     # No call emitted, so wait should timeout
-    success = agent.wait_for_call(timeout: 0.5)
+    success = agent.wait_for_call(timeout: 0.01)
     refute success, "Expected agent to not receive a call"
     assert_nil agent.call
   end
@@ -51,8 +51,6 @@ class Switest::ScenarioTest < Minitest::Test
   def test_assert_no_call_success
     agent = Switest::Agent.listen_for_call
 
-    # No call emitted
-    sleep 0.2
     refute agent.call?, "Expected agent to not have received a call"
   end
 
@@ -71,7 +69,6 @@ class Switest::ScenarioTest < Minitest::Test
     agent = Switest::Agent.new(call)
 
     Async do
-      sleep 0.2
       call.handle_hangup("NORMAL_CLEARING")
     end
 
@@ -85,7 +82,7 @@ class Switest::ScenarioTest < Minitest::Test
     agent = Switest::Agent.new(call)
 
     # Don't hangup, so wait should timeout
-    success = agent.wait_for_end(timeout: 0.3)
+    success = agent.wait_for_end(timeout: 0.01)
     refute success, "Expected call to not be hung up yet"
     refute agent.ended?
   end
@@ -94,8 +91,6 @@ class Switest::ScenarioTest < Minitest::Test
     call = make_call
     agent = Switest::Agent.new(call)
 
-    # Call is still alive
-    sleep 0.2
     refute agent.ended?, "Expected call to still be active"
   end
 
@@ -104,7 +99,6 @@ class Switest::ScenarioTest < Minitest::Test
     agent = Switest::Agent.new(call)
 
     Async do
-      sleep 0.1
       call.handle_dtmf("1")
       call.handle_dtmf("2")
       call.handle_dtmf("3")
@@ -119,12 +113,11 @@ class Switest::ScenarioTest < Minitest::Test
     agent = Switest::Agent.new(call)
 
     Async do
-      sleep 0.1
       call.handle_dtmf("9")
     end
 
     # Only one digit sent, waiting for 3
-    received = agent.receive_dtmf(count: 3, timeout: 0.5)
+    received = agent.receive_dtmf(count: 3, timeout: 0.01)
     assert_equal "9", received  # Should get what was sent before timeout
   end
 end

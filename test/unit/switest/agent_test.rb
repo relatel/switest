@@ -58,7 +58,6 @@ class Switest::AgentTest < Minitest::Test
     call = make_call
 
     Async do
-      sleep 0.5
       @events.emit(:offer, { to: call.to, from: call.from, call: call })
     end
 
@@ -70,7 +69,7 @@ class Switest::AgentTest < Minitest::Test
   def test_wait_for_call_timeout
     agent = Switest::Agent.listen_for_call(to: /71999999/)
 
-    result = agent.wait_for_call(timeout: 0.5)
+    result = agent.wait_for_call(timeout: 0.01)
     refute result
     assert_nil agent.call
   end
@@ -80,9 +79,7 @@ class Switest::AgentTest < Minitest::Test
     agent = Switest::Agent.new(call)
 
     Async do
-      sleep 0.2
       call.handle_callstate("RINGING")
-      sleep 0.1
       call.handle_callstate("ACTIVE")
     end
 
@@ -96,7 +93,6 @@ class Switest::AgentTest < Minitest::Test
     agent = Switest::Agent.new(call)
 
     Async do
-      sleep 0.5
       call.handle_hangup("NORMAL_CLEARING")
     end
 
