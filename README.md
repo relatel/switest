@@ -174,12 +174,6 @@ assert_hungup(agent, timeout: 5)                     # Call has ended
 assert_not_hungup(agent, timeout: 2)                 # Call is still active
 assert_dtmf(agent, "123", timeout: 5)                # Agent receives expected DTMF digits
 assert_dtmf(agent, "123") { other.send_dtmf("123") } # With block: flushes stale DTMF first
-assert_hangup_reason("NORMAL_CLEARING", agent)       # Check hangup cause
-assert_sip_hangup_code(200, agent)                   # Check SIP response code
-assert_from("+4512345678", agent)                    # Check SIP From user
-assert_from_display("Alice", agent)                  # Check SIP From display name
-assert_asserted_identity("+4512345678", agent)       # Check P-Asserted-Identity
-assert_diversion("+4512345678", { reason: "unconditional" }, agent) # Check Diversion header
 ```
 
 The `hangup_all` helper ends all active calls (useful before CDR assertions):
