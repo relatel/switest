@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require "async"
+require "async/promise"
+
 module Switest
   class Agent
     class << self
@@ -30,8 +33,7 @@ module Switest
 
         # Register a one-time handler for matching inbound calls
         @events.once(:offer, guards) do |data|
-          agent.instance_variable_set(:@call, data[:call])
-          agent.instance_variable_get(:@call_event).set
+          agent.receive_call(data[:call])
         end
 
         agent
@@ -42,7 +44,7 @@ module Switest
 
     def initialize(call)
       @call = call
-      @call_event = Concurrent::Event.new
+      @call_promise = Async::Promise.new
     end
 
     def call?
@@ -81,18 +83,15 @@ module Switest
 
     def wait_for_call(timeout: 5)
       return true if @call
-      @call_event.wait(timeout)
+      Async::Task.current.with_timeout(timeout) { @call_promise.wait }
+      !@call.nil?
+    rescue Async::TimeoutError
       !@call.nil?
     end
 
     def wait_for_answer(timeout: 5)
       raise "No call to wait for" unless @call
       @call.wait_for_answer(timeout: timeout)
-    end
-
-    def wait_for_bridge(timeout: 5)
-      raise "No call to wait for" unless @call
-      @call.wait_for_bridge(timeout: timeout)
     end
 
     def wait_for_end(timeout: 5)
@@ -117,6 +116,18 @@ module Switest
       @call&.ended? || false
     end
 
+    def outbound?
+      @call&.outbound? || false
+    end
+
+    def inbound?
+      @call&.inbound? || false
+    end
+
+    def id
+      @call&.id
+    end
+
     def start_time
       @call&.start_time
     end
@@ -125,8 +136,22 @@ module Switest
       @call&.answer_time
     end
 
+    def end_time
+      @call&.end_time
+    end
+
     def end_reason
       @call&.end_reason
+    end
+
+    def headers
+      @call&.headers
+    end
+
+    # @api private — called by listen_for_call handler
+    def receive_call(call)
+      @call = call
+      @call_promise.resolve(true)
     end
   end
 end

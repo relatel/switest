@@ -1,85 +1,36 @@
 # frozen_string_literal: true
 
 module Switest
-  # Custom EventEmitter with guard support for conditional event handling.
-  # Supports hash equality, regex, array membership, and proc guards.
+  # Lightweight one-shot event emitter with guard support for conditional
+  # event handling. Supports hash equality, regex, array membership, and
+  # proc guards.
+  #
+  # Used for routing inbound call offers from Client to Agent.listen_for_call.
   class Events
     def initialize
       @handlers = Hash.new { |h, k| h[k] = [] }
-      @handler_id = 0
-      @mutex = Mutex.new
-    end
-
-    # Register a permanent event handler with optional guards
-    # @param event [Symbol] Event name
-    # @param guards [Hash] Guard conditions (hash equality, regex, array, or proc)
-    # @return [Integer] Handler ID for later removal
-    def on(event, guards = {}, &block)
-      @mutex.synchronize do
-        @handler_id += 1
-        @handlers[event] << {
-          id: @handler_id,
-          guards: guards,
-          callback: block,
-          once: false
-        }
-        @handler_id
-      end
     end
 
     # Register a one-time event handler with optional guards
-    # @param event [Symbol] Event name
-    # @param guards [Hash] Guard conditions
-    # @return [Integer] Handler ID
     def once(event, guards = {}, &block)
-      @mutex.synchronize do
-        @handler_id += 1
-        @handlers[event] << {
-          id: @handler_id,
-          guards: guards,
-          callback: block,
-          once: true
-        }
-        @handler_id
-      end
+      @handlers[event] << { guards: guards, callback: block }
     end
 
-    # Emit an event, triggering all matching handlers
-    # @param event [Symbol] Event name
-    # @param data [Hash] Event data to pass to handlers
+    # Emit an event, triggering and removing all matching handlers
     def emit(event, data = {})
-      handlers_to_call = []
-      handlers_to_remove = []
+      matched = []
+      remaining = []
 
-      @mutex.synchronize do
-        @handlers[event].each do |handler|
-          if guards_match?(handler[:guards], data)
-            handlers_to_call << handler
-            handlers_to_remove << handler[:id] if handler[:once]
-          end
-        end
-      end
-
-      handlers_to_call.each { |handler| handler[:callback].call(data) }
-
-      @mutex.synchronize do
-        handlers_to_remove.each do |id|
-          @handlers[event].reject! { |h| h[:id] == id }
-        end
-      end
-    end
-
-    # Remove handler(s) for an event
-    # @param event [Symbol] Event name
-    # @param handler_id [Integer, nil] Specific handler ID, or nil to remove all
-    def off(event, handler_id = nil)
-      @mutex.synchronize do
-        if handler_id
-          @handlers[event].reject! { |h| h[:id] == handler_id }
+      @handlers[event].each do |handler|
+        if guards_match?(handler[:guards], data)
+          matched << handler
         else
-          @handlers.delete(event)
+          remaining << handler
         end
       end
+
+      @handlers[event] = remaining
+      matched.each { |handler| handler[:callback].call(data) }
     end
 
     private

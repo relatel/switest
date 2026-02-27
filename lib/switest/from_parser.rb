@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
 module Switest
-  module ESL
-    # Parses a `from` string into FreeSWITCH channel variables,
+  # Parses a `from` string into FreeSWITCH channel variables,
     # replicating mod_rayo's parse_dial_from() behavior.
     #
     # Algorithm (matching mod_rayo):
@@ -100,6 +99,5 @@ module Switest
 
         vars
       end
-    end
   end
 end
