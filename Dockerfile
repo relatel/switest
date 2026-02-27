@@ -9,4 +9,4 @@ RUN bundle config set path /bundle
 WORKDIR /app
 
 ENTRYPOINT ["sh", "-c", "bundle install --quiet && exec bundle exec \"$@\"", "--"]
-CMD ["rake", "integration"]
+CMD ["rake", "scenarios"]
