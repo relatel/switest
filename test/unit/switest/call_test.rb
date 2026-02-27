@@ -84,26 +84,6 @@ class Switest::CallTest < Minitest::Test
     assert_instance_of Time, call.answer_time, "answer_time should still be set"
   end
 
-  def test_on_answer_callback
-    call = make_call
-
-    callback_called = false
-    call.on_answer { callback_called = true }
-    call.handle_answer
-    call.handle_callstate("ACTIVE")
-
-    assert callback_called
-  end
-
-  def test_on_end_callback
-    call = make_call
-
-    callback_called = false
-    call.on_end { callback_called = true }
-    call.handle_hangup("NORMAL_CLEARING")
-
-    assert callback_called
-  end
 
   def test_wait_for_answer_returns_true_on_active
     call = make_call

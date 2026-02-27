@@ -25,7 +25,6 @@ module Switest
       @end_reason = nil
 
       @dtmf_queue = Async::Queue.new
-      @callbacks = { answer: [], end: [] }
 
       @answered_promise = Async::Promise.new
       @ended_promise = Async::Promise.new
@@ -111,15 +110,6 @@ module Switest
       digits
     end
 
-    # Callbacks
-    def on_answer(&block)
-      @callbacks[:answer] << block
-    end
-
-    def on_end(&block)
-      @callbacks[:end] << block
-    end
-
     # Blocking waits
     def wait_for_answer(timeout: 5)
       return true if answered?
@@ -168,7 +158,6 @@ module Switest
 
       @state = :answered
       @answered_promise.resolve(true)
-      fire_callbacks(:answer)
     end
 
     def handle_hangup(cause, event_content = {})
@@ -187,7 +176,6 @@ module Switest
 
       @answered_promise.resolve(true)
       @ended_promise.resolve(true)
-      fire_callbacks(:end)
     end
 
     def handle_dtmf(digit)
@@ -206,8 +194,5 @@ module Switest
       @session.command(msg.chomp)
     end
 
-    def fire_callbacks(type)
-      @callbacks[type].each { |cb| cb.call(self) }
-    end
   end
 end
