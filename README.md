@@ -164,7 +164,7 @@ agent.end_reason  # e.g. "NORMAL_CLEARING"
 
 ### Scenario Assertions
 
-`Switest::Scenario` provides these assertions:
+Available via `Switest::Assertions` (included in `Switest::Scenario`):
 
 ```ruby
 assert_call(agent, timeout: 5)                       # Agent receives a call
@@ -174,6 +174,12 @@ assert_hungup(agent, timeout: 5)                     # Call has ended
 assert_not_hungup(agent, timeout: 2)                 # Call is still active
 assert_dtmf(agent, "123", timeout: 5)                # Agent receives expected DTMF digits
 assert_dtmf(agent, "123") { other.send_dtmf("123") } # With block: flushes stale DTMF first
+assert_hangup_reason("NORMAL_CLEARING", agent)       # Check hangup cause
+assert_sip_hangup_code(200, agent)                   # Check SIP response code
+assert_from("+4512345678", agent)                    # Check SIP From user
+assert_from_display("Alice", agent)                  # Check SIP From display name
+assert_asserted_identity("+4512345678", agent)       # Check P-Asserted-Identity
+assert_diversion("+4512345678", { reason: "unconditional" }, agent) # Check Diversion header
 ```
 
 The `hangup_all` helper ends all active calls (useful before CDR assertions):
@@ -262,12 +268,13 @@ docker compose up -d freeswitch          # start FreeSWITCH
 docker compose run --rm test             # run integration tests
 ```
 
-The compose file mounts three config files into FreeSWITCH:
+The compose file mounts config files into FreeSWITCH:
 
 | Local file                                    | Container path                                                  |
 |-----------------------------------------------|-----------------------------------------------------------------|
 | `docker/freeswitch/event_socket.conf.xml`     | `/etc/freeswitch/autoload_configs/event_socket.conf.xml`        |
 | `docker/freeswitch/acl.conf.xml`              | `/etc/freeswitch/autoload_configs/acl.conf.xml`                 |
+| `docker/freeswitch/switch.conf.xml`           | `/etc/freeswitch/autoload_configs/switch.conf.xml`              |
 | `docker/freeswitch/dialplan.xml`              | `/etc/freeswitch/dialplan/public/00_switest.xml`                |
 
 ### FreeSWITCH Requirements
@@ -308,7 +315,7 @@ Switest.configure do |config|
 end
 ```
 
-Or via environment variables (used by the integration test helper):
+Or via environment variables (used by the scenario helper):
 
 ```bash
 FREESWITCH_HOST=127.0.0.1
