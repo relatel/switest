@@ -168,7 +168,7 @@ module Switest
         handle_answer
       when "CHANNEL_BRIDGE"
         handle_bridge
-      when "CHANNEL_HANGUP", "CHANNEL_HANGUP_COMPLETE"
+      when "CHANNEL_HANGUP_COMPLETE"
         cause = response.content[:hangup_cause]
         handle_hangup(cause, response.content)
       when "DTMF"
