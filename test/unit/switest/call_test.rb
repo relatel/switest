@@ -87,10 +87,8 @@ class Switest::CallTest < Minitest::Test
   def test_wait_for_answer_returns_true_on_active
     call = make_call
 
-    Async do
-      call.handle_callstate("RINGING")
-      call.handle_callstate("ACTIVE")
-    end
+    call.handle_callstate("RINGING")
+    call.handle_callstate("ACTIVE")
 
     result = call.wait_for_answer(timeout: 1)
     assert result
@@ -106,9 +104,7 @@ class Switest::CallTest < Minitest::Test
   def test_wait_for_end_returns_true_on_hangup
     call = make_call
 
-    Async do
-      call.handle_hangup("NORMAL_CLEARING")
-    end
+    call.handle_hangup("NORMAL_CLEARING")
 
     result = call.wait_for_end(timeout: 1)
     assert result
@@ -149,10 +145,8 @@ class Switest::CallTest < Minitest::Test
   def test_wait_for_answer_waits_for_active
     call = make_call
 
-    Async do
-      call.handle_callstate("RINGING")
-      call.handle_callstate("ACTIVE")
-    end
+    call.handle_callstate("RINGING")
+    call.handle_callstate("ACTIVE")
 
     result = call.wait_for_answer(timeout: 1)
     assert result

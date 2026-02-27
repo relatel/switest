@@ -56,10 +56,7 @@ class Switest::AgentTest < Minitest::Test
     agent = Switest::Agent.listen_for_call(to: /71999999/)
 
     call = make_call
-
-    Async do
-      @events.emit(:offer, { to: call.to, from: call.from, call: call })
-    end
+    @events.emit(:offer, { to: call.to, from: call.from, call: call })
 
     result = agent.wait_for_call(timeout: 2)
     assert result
@@ -78,10 +75,8 @@ class Switest::AgentTest < Minitest::Test
     call = make_call
     agent = Switest::Agent.new(call)
 
-    Async do
-      call.handle_callstate("RINGING")
-      call.handle_callstate("ACTIVE")
-    end
+    call.handle_callstate("RINGING")
+    call.handle_callstate("ACTIVE")
 
     result = agent.wait_for_answer(timeout: 2)
     assert result
@@ -92,9 +87,7 @@ class Switest::AgentTest < Minitest::Test
     call = make_call
     agent = Switest::Agent.new(call)
 
-    Async do
-      call.handle_hangup("NORMAL_CLEARING")
-    end
+    call.handle_hangup("NORMAL_CLEARING")
 
     result = agent.wait_for_end(timeout: 2)
     assert result
