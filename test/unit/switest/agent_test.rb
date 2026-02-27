@@ -109,7 +109,7 @@ class Switest::AgentTest < Minitest::Test
 
     agent.answer(wait: false)
 
-    assert @session.commands_sent.any? { |cmd| cmd.include?("uuid_answer") }
+    assert @session.commands_sent.any? { |cmd| cmd.include?("execute-app-name: answer") }
   end
 
   def test_hangup_sends_command
@@ -118,6 +118,6 @@ class Switest::AgentTest < Minitest::Test
 
     agent.hangup(wait: false)
 
-    assert @session.commands_sent.any? { |cmd| cmd.include?("uuid_kill") }
+    assert @session.commands_sent.any? { |cmd| cmd.include?("call-command: hangup") }
   end
 end

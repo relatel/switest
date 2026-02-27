@@ -17,10 +17,11 @@
     </condition>
   </extension>
 
-  <!-- Bridge test — park so the test can detect and control bridging -->
-  <extension name="switest-bridge-echo">
-    <condition field="destination_number" expression="^bridge_echo$">
-      <action application="park"/>
+  <!-- Bridge: connect caller to another loopback destination -->
+  <extension name="switest-bridge">
+    <condition field="destination_number" expression="^bridge_(.+)$">
+      <action application="set" data="hangup_after_bridge=true"/>
+      <action application="bridge" data="loopback/$1/public"/>
     </condition>
   </extension>
 

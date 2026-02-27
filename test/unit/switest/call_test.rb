@@ -242,17 +242,30 @@ class Switest::CallTest < Minitest::Test
     outbound.answer(wait: false)
 
     # Only inbound should have sent the answer command
-    answer_commands = @session.commands_sent.select { |c| c.include?("uuid_answer") }
+    answer_commands = @session.commands_sent.select { |c| c.include?("execute-app-name: answer") }
     assert_equal 1, answer_commands.length
   end
 
-  def test_hangup_sends_uuid_kill
+  def test_answer_sends_sendmsg_execute
+    call = make_call(direction: :inbound)
+
+    call.answer(wait: false)
+
+    command = @session.commands_sent.last
+    assert_match(/sendmsg test-uuid/, command)
+    assert_match(/call-command: execute/, command)
+    assert_match(/execute-app-name: answer/, command)
+  end
+
+  def test_hangup_sends_sendmsg_hangup
     call = make_call(direction: :outbound)
 
     call.hangup("USER_BUSY", wait: false)
 
     command = @session.commands_sent.last
-    assert_match(/api uuid_kill test-uuid USER_BUSY/, command)
+    assert_match(/sendmsg test-uuid/, command)
+    assert_match(/call-command: hangup/, command)
+    assert_match(/hangup-cause: USER_BUSY/, command)
   end
 
   def test_hangup_defaults_to_normal_clearing
@@ -261,7 +274,8 @@ class Switest::CallTest < Minitest::Test
     call.hangup(wait: false)
 
     command = @session.commands_sent.last
-    assert_match(/api uuid_kill test-uuid NORMAL_CLEARING/, command)
+    assert_match(/sendmsg test-uuid/, command)
+    assert_match(/hangup-cause: NORMAL_CLEARING/, command)
   end
 
   def test_reject_busy_uses_user_busy_cause
@@ -270,7 +284,7 @@ class Switest::CallTest < Minitest::Test
     call.reject(:busy, wait: false)
 
     command = @session.commands_sent.last
-    assert_match(/uuid_kill test-uuid USER_BUSY/, command)
+    assert_match(/hangup-cause: USER_BUSY/, command)
   end
 
   def test_reject_decline_uses_call_rejected_cause
@@ -279,7 +293,7 @@ class Switest::CallTest < Minitest::Test
     call.reject(:decline, wait: false)
 
     command = @session.commands_sent.last
-    assert_match(/uuid_kill test-uuid CALL_REJECTED/, command)
+    assert_match(/hangup-cause: CALL_REJECTED/, command)
   end
 
   def test_send_dtmf_defaults_to_wait_true
@@ -288,18 +302,21 @@ class Switest::CallTest < Minitest::Test
     call.send_dtmf("123")
 
     command = @session.commands_sent.last
-    assert_match(/api uuid_broadcast test-uuid playback::tone_stream/, command)
-    assert_match(%r{d=200;w=250;123}, command)
+    assert_match(/sendmsg test-uuid/, command)
+    assert_match(/execute-app-name: playback/, command)
+    assert_match(%r{tone_stream://d=200;w=250;123}, command)
+    assert_match(/event-lock: true/, command)
   end
 
-  def test_send_dtmf_with_wait_false_uses_bgapi
+  def test_send_dtmf_with_wait_false_no_event_lock
     call = make_call(direction: :outbound)
 
     call.send_dtmf("123", wait: false)
 
     command = @session.commands_sent.last
-    assert_match(/bgapi uuid_broadcast test-uuid playback::tone_stream/, command)
-    assert_match(%r{d=200;w=250;123}, command)
+    assert_match(/sendmsg test-uuid/, command)
+    assert_match(/execute-app-name: playback/, command)
+    refute_match(/event-lock/, command)
   end
 
   def test_play_audio_defaults_to_wait_true
@@ -308,16 +325,21 @@ class Switest::CallTest < Minitest::Test
     call.play_audio("/tmp/test.wav")
 
     command = @session.commands_sent.last
-    assert_match(%r{api uuid_broadcast test-uuid playback::/tmp/test.wav}, command)
+    assert_match(/sendmsg test-uuid/, command)
+    assert_match(/execute-app-name: playback/, command)
+    assert_match(%r{execute-app-arg: /tmp/test.wav}, command)
+    assert_match(/event-lock: true/, command)
   end
 
-  def test_play_audio_with_wait_false_uses_bgapi
+  def test_play_audio_with_wait_false_no_event_lock
     call = make_call(direction: :outbound)
 
     call.play_audio("/tmp/test.wav", wait: false)
 
     command = @session.commands_sent.last
-    assert_match(%r{bgapi uuid_broadcast test-uuid playback::/tmp/test.wav}, command)
+    assert_match(/sendmsg test-uuid/, command)
+    assert_match(/execute-app-name: playback/, command)
+    refute_match(/event-lock/, command)
   end
 
   def test_handle_event_dispatches_answer

@@ -65,14 +65,14 @@ module Switest
     # Actions
     def answer(wait: 5)
       return unless @state == :offered && inbound?
-      @session.command("api uuid_answer #{@id}")
+      sendmsg("execute", "answer")
       return unless wait
       wait_for_answer(timeout: wait)
     end
 
     def hangup(cause = "NORMAL_CLEARING", wait: 5)
       return if ended?
-      @session.command("api uuid_kill #{@id} #{cause}")
+      sendmsg("hangup", hangup_cause: cause)
       return unless wait
       wait_for_end(timeout: wait)
     end
@@ -88,11 +88,7 @@ module Switest
     end
 
     def play_audio(url, wait: true)
-      if wait
-        @session.command("api uuid_broadcast #{@id} playback::#{url}")
-      else
-        @session.bgapi("uuid_broadcast #{@id} playback::#{url}")
-      end
+      sendmsg("execute", "playback", url, event_lock: wait)
     end
 
     def send_dtmf(digits, wait: true)
@@ -218,6 +214,16 @@ module Switest
     end
 
     private
+
+    def sendmsg(command, app = nil, arg = nil, event_lock: false, hangup_cause: nil)
+      msg = +"sendmsg #{@id}\n"
+      msg << "call-command: #{command}\n"
+      msg << "execute-app-name: #{app}\n" if app
+      msg << "execute-app-arg: #{arg}\n" if arg
+      msg << "event-lock: true\n" if event_lock
+      msg << "hangup-cause: #{hangup_cause}" if hangup_cause
+      @session.command(msg.chomp)
+    end
 
     def fire_callbacks(type)
       @callbacks[type].each { |cb| cb.call(self) }
