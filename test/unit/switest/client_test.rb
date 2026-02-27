@@ -225,7 +225,7 @@ class Switest::ClientTest < Minitest::Test
     call_a = @client.dial(to: "sofia/gateway/test/111")
     call_b = @client.dial(to: "sofia/gateway/test/222")
 
-    call_a.handle_answer
+    call_a.handle_callstate("RINGING")
     call_a.handle_callstate("ACTIVE")
 
     assert call_a.answered?, "Call A should be answered"

@@ -1,8 +1,10 @@
 # frozen_string_literal: true
 
 require "switest"
+require "logger"
 
 Warning[:experimental] = false
+Librevox.logger.level = Logger::WARN
 
 # Configure FreeSWITCH connection from environment
 Switest.configure do |config|

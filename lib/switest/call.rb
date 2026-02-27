@@ -6,6 +6,8 @@ require "async/queue"
 
 module Switest
   class Call
+    CALLSTATE_MAP = { "RINGING" => :ringing, "ACTIVE" => :answered }.freeze
+
     attr_reader :id, :to, :from, :headers, :direction
     attr_reader :start_time, :answer_time, :end_time, :end_reason
     attr_reader :state
@@ -18,7 +20,7 @@ module Switest
       @from = from
       @headers = headers.is_a?(Hash) ? headers.dup : {}
 
-      @state = :offered
+      @state = :new
       @start_time = Time.now
       @answer_time = nil
       @end_time = nil
@@ -57,7 +59,7 @@ module Switest
 
     # Actions
     def answer(wait: 5)
-      return unless @state == :offered && inbound?
+      return unless @state == :ringing && inbound?
       sendmsg("execute", "answer")
       return unless wait
       wait_for_answer(timeout: wait)
@@ -71,7 +73,7 @@ module Switest
     end
 
     def reject(reason = :decline, wait: 5)
-      return unless @state == :offered && inbound?
+      return unless @state == :ringing && inbound?
       cause = case reason
               when :busy then "USER_BUSY"
               when :decline then "CALL_REJECTED"
@@ -132,8 +134,6 @@ module Switest
       return unless response.event?
 
       case response.event
-      when "CHANNEL_ANSWER"
-        handle_answer
       when "CHANNEL_CALLSTATE"
         handle_callstate(response.content[:channel_call_state])
       when "CHANNEL_HANGUP_COMPLETE"
@@ -146,18 +146,16 @@ module Switest
     end
 
     # Internal state updates
-    def handle_answer
-      return if @state == :ended
-      @state = :ringing
-      @answer_time = Time.now
-    end
-
     def handle_callstate(call_state)
       return if @state == :ended
-      return unless call_state == "ACTIVE"
+      new_state = CALLSTATE_MAP[call_state]
+      return if new_state.nil? || @state == new_state
 
-      @state = :answered
-      @answered_promise.resolve(true)
+      @state = new_state
+      if new_state == :answered
+        @answer_time = Time.now
+        @answered_promise.resolve(true)
+      end
     end
 
     def handle_hangup(cause, event_content = {})

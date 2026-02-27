@@ -24,27 +24,26 @@ class Switest::CallTest < Minitest::Test
     end.new({}, content, event_name)
   end
 
-  def test_initial_state_is_offered
+  def test_initial_state_is_new
     call = make_call
 
-    assert_equal :offered, call.state
+    assert_equal :new, call.state
     assert call.alive?
     refute call.active?
     refute call.answered?
     refute call.ended?
   end
 
-  def test_handle_answer_transitions_to_ringing
+  def test_handle_callstate_ringing_transitions_to_ringing
     call = make_call
 
-    call.handle_answer
+    call.handle_callstate("RINGING")
 
     assert_equal :ringing, call.state
     assert call.alive?
     refute call.active?
     refute call.answered?
     refute call.ended?
-    assert_instance_of Time, call.answer_time
   end
 
   def test_handle_hangup_transitions_to_ended
@@ -75,7 +74,7 @@ class Switest::CallTest < Minitest::Test
   def test_answered_false_after_hangup
     call = make_call
 
-    call.handle_answer
+    call.handle_callstate("RINGING")
     call.handle_callstate("ACTIVE")
     call.handle_hangup("NORMAL_CLEARING")
 
@@ -90,7 +89,7 @@ class Switest::CallTest < Minitest::Test
 
     Async do
       sleep 0.1
-      call.handle_answer
+      call.handle_callstate("RINGING")
       sleep 0.1
       call.handle_callstate("ACTIVE")
     end
@@ -121,7 +120,7 @@ class Switest::CallTest < Minitest::Test
   def test_handle_callstate_active_transitions_to_answered
     call = make_call
 
-    call.handle_answer
+    call.handle_callstate("RINGING")
     assert_equal :ringing, call.state
     refute call.answered?
 
@@ -143,7 +142,7 @@ class Switest::CallTest < Minitest::Test
   def test_handle_callstate_ignores_non_active
     call = make_call
 
-    call.handle_answer
+    call.handle_callstate("RINGING")
     call.handle_callstate("RINGING")
 
     assert_equal :ringing, call.state
@@ -155,7 +154,7 @@ class Switest::CallTest < Minitest::Test
 
     Async do
       sleep 0.1
-      call.handle_answer
+      call.handle_callstate("RINGING")
       sleep 0.1
       call.handle_callstate("ACTIVE")
     end
@@ -207,9 +206,12 @@ class Switest::CallTest < Minitest::Test
     assert outbound.outbound?
   end
 
-  def test_answer_only_works_for_inbound_offered
+  def test_answer_only_works_for_inbound_ringing
     inbound = make_call(direction: :inbound)
     outbound = make_call(direction: :outbound)
+
+    inbound.handle_callstate("RINGING")
+    outbound.handle_callstate("RINGING")
 
     inbound.answer(wait: false)
     outbound.answer(wait: false)
@@ -221,6 +223,7 @@ class Switest::CallTest < Minitest::Test
 
   def test_answer_sends_sendmsg_execute
     call = make_call(direction: :inbound)
+    call.handle_callstate("RINGING")
 
     call.answer(wait: false)
 
@@ -253,6 +256,7 @@ class Switest::CallTest < Minitest::Test
 
   def test_reject_busy_uses_user_busy_cause
     call = make_call(direction: :inbound)
+    call.handle_callstate("RINGING")
 
     call.reject(:busy, wait: false)
 
@@ -262,6 +266,7 @@ class Switest::CallTest < Minitest::Test
 
   def test_reject_decline_uses_call_rejected_cause
     call = make_call(direction: :inbound)
+    call.handle_callstate("RINGING")
 
     call.reject(:decline, wait: false)
 
@@ -315,10 +320,10 @@ class Switest::CallTest < Minitest::Test
     refute_match(/event-lock/, command)
   end
 
-  def test_handle_event_dispatches_answer_and_callstate
+  def test_handle_event_dispatches_callstate
     call = make_call(direction: :outbound)
 
-    call.handle_event(make_event("CHANNEL_ANSWER", unique_id: "test-uuid"))
+    call.handle_event(make_event("CHANNEL_CALLSTATE", unique_id: "test-uuid", channel_call_state: "RINGING"))
     assert_equal :ringing, call.state
 
     call.handle_event(make_event("CHANNEL_CALLSTATE", unique_id: "test-uuid", channel_call_state: "ACTIVE"))

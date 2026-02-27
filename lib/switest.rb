@@ -9,6 +9,7 @@ require_relative "switest/session"
 require_relative "switest/call"
 require_relative "switest/client"
 require_relative "switest/agent"
+require_relative "switest/assertions"
 require_relative "switest/scenario"
 
 module Switest

@@ -124,6 +124,7 @@ module Switest
         headers: data,
         session: @session
       )
+      call.handle_callstate("RINGING")
       @calls[uuid] = call
 
       fire_offer(call)

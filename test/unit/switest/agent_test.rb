@@ -81,7 +81,7 @@ class Switest::AgentTest < Minitest::Test
 
     Async do
       sleep 0.2
-      call.handle_answer
+      call.handle_callstate("RINGING")
       sleep 0.1
       call.handle_callstate("ACTIVE")
     end
@@ -107,6 +107,7 @@ class Switest::AgentTest < Minitest::Test
 
   def test_answer_sends_command
     call = make_call
+    call.handle_callstate("RINGING")
     agent = Switest::Agent.new(call)
 
     agent.answer(wait: false)
