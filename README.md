@@ -1,11 +1,17 @@
+<p align="center">
+  <img src=".github/banner.svg" alt="switest" width="800"/>
+</p>
+
 # Switest
 
-Functional testing for voice applications via FreeSWITCH ESL.
+Functional testing for voice applications via FreeSWITCH.
 
-Switest lets you write tests for your voice applications using direct
-ESL (Event Socket Library) communication with FreeSWITCH. Tests run as
-plain Minitest cases — no Adhearsion, no Rayo, just a TCP socket to
-FreeSWITCH.
+Switest lets you write tests for your voice applications using
+[librevox](https://github.com/relatel/librevox) to communicate with
+FreeSWITCH over Event Socket. Tests run as plain Minitest cases — no
+Adhearsion, no Rayo, just a TCP socket to FreeSWITCH. Each test runs
+inside an [async](https://github.com/socketry/async) reactor for
+fiber-based concurrency.
 
 ## Table of Contents
 
@@ -74,8 +80,9 @@ bundle exec rake test
 ### Scenario
 
 `Switest::Scenario` is a Minitest::Test subclass that handles FreeSWITCH
-connection lifecycle for you. Each test method gets a fresh ESL client that
-connects on setup and disconnects on teardown.
+connection lifecycle for you. Each test method gets a fresh connection that
+is established on setup and torn down after the test. The test body runs
+inside an `Async` reactor, so all waits are fiber-based and non-blocking.
 
 ```ruby
 class MyTest < Switest::Scenario
@@ -137,6 +144,7 @@ Agent.listen_for_call(guards)  # e.g. to: /pattern/, from: /pattern/
 agent.answer(wait: 5)             # Answer an inbound call
 agent.hangup(wait: 5)             # Hang up
 agent.reject(reason = :decline)   # Reject inbound call (:decline or :busy)
+agent.play_audio(url)             # Play an audio file or tone stream
 agent.send_dtmf(digits)           # Send DTMF tones
 agent.receive_dtmf(count:, timeout:)  # Receive DTMF digits
 ```
@@ -157,8 +165,13 @@ agent.alive?      # Call exists and not ended?
 agent.active?     # Answered and not ended?
 agent.answered?   # Has been answered?
 agent.ended?      # Has ended?
+agent.inbound?    # Is an inbound call?
+agent.outbound?   # Is an outbound call?
+agent.id          # Call UUID
+agent.headers     # Call headers hash
 agent.start_time  # When call started
 agent.answer_time # When answered
+agent.end_time    # When ended
 agent.end_reason  # e.g. "NORMAL_CLEARING"
 ```
 
@@ -303,8 +316,8 @@ The compose file mounts config files into FreeSWITCH:
 ```ruby
 Switest.configure do |config|
   config.host = "127.0.0.1"     # FreeSWITCH host
-  config.port = 8021             # ESL port
-  config.password = "ClueCon"   # ESL password
+  config.port = 8021             # Event Socket port
+  config.password = "ClueCon"   # Event Socket password
   config.default_timeout = 5    # Default timeout for waits
 end
 ```
