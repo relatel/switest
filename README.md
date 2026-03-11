@@ -145,8 +145,7 @@ agent.receive_dtmf(count:, timeout:)  # Receive DTMF digits
 
 ```ruby
 agent.wait_for_call(timeout: 5)    # Wait for inbound call to arrive
-agent.wait_for_answer(timeout: 5)  # Wait for call to be answered
-agent.wait_for_bridge(timeout: 5)  # Wait for call to be bridged
+agent.wait_for_answer(timeout: 5)  # Wait for call to be fully answered (ACTIVE)
 agent.wait_for_end(timeout: 5)     # Wait for call to end
 ```
 
@@ -165,26 +164,17 @@ agent.end_reason  # e.g. "NORMAL_CLEARING"
 
 ### Scenario Assertions
 
-`Switest::Scenario` provides these assertions:
+Available via `Switest::Assertions` (included in `Switest::Scenario`):
 
 ```ruby
 assert_call(agent, timeout: 5)                       # Agent receives a call
 assert_no_call(agent, timeout: 2)                    # Agent does NOT receive a call
-assert_answered(agent, timeout: 5)                   # Call has been answered
-assert_bridged(agent, timeout: 5)                    # Call has been bridged (see note below)
+assert_answered(agent, timeout: 5)                   # Call is fully established (ACTIVE)
 assert_hungup(agent, timeout: 5)                     # Call has ended
 assert_not_hungup(agent, timeout: 2)                 # Call is still active
 assert_dtmf(agent, "123", timeout: 5)                # Agent receives expected DTMF digits
 assert_dtmf(agent, "123") { other.send_dtmf("123") } # With block: flushes stale DTMF first
 ```
-
-**Note on `assert_bridged`:** This assertion only works when a CHANNEL_BRIDGE
-event fires on a channel Switest tracks. It works when the FreeSWITCH dialplan
-runs the `bridge` application on an inbound channel picked up via
-`listen_for_call`. It does **not** work for agent-to-agent calls routed through
-SIP gateways — the bridge happens on internal gateway legs whose UUIDs Switest
-doesn't track. For gateway scenarios, use `assert_answered` on both agents
-instead to confirm the call is connected.
 
 The `hangup_all` helper ends all active calls (useful before CDR assertions):
 
@@ -272,12 +262,13 @@ docker compose up -d freeswitch          # start FreeSWITCH
 docker compose run --rm test             # run integration tests
 ```
 
-The compose file mounts three config files into FreeSWITCH:
+The compose file mounts config files into FreeSWITCH:
 
 | Local file                                    | Container path                                                  |
 |-----------------------------------------------|-----------------------------------------------------------------|
 | `docker/freeswitch/event_socket.conf.xml`     | `/etc/freeswitch/autoload_configs/event_socket.conf.xml`        |
 | `docker/freeswitch/acl.conf.xml`              | `/etc/freeswitch/autoload_configs/acl.conf.xml`                 |
+| `docker/freeswitch/switch.conf.xml`           | `/etc/freeswitch/autoload_configs/switch.conf.xml`              |
 | `docker/freeswitch/dialplan.xml`              | `/etc/freeswitch/dialplan/public/00_switest.xml`                |
 
 ### FreeSWITCH Requirements
@@ -318,7 +309,7 @@ Switest.configure do |config|
 end
 ```
 
-Or via environment variables (used by the integration test helper):
+Or via environment variables (used by the scenario helper):
 
 ```bash
 FREESWITCH_HOST=127.0.0.1
@@ -329,7 +320,7 @@ FREESWITCH_PASSWORD=ClueCon
 ## Dependencies
 
 - Ruby >= 3.0
-- concurrent-ruby ~> 1.2
+- librevox ~> 1.0
 - minitest >= 5.5, < 7.0
 
 ## License

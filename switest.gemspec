@@ -23,6 +23,6 @@ Gem::Specification.new do |spec|
   spec.files = Dir.glob("lib/switest/**/*") + %w[lib/switest.rb README.md LICENSE]
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "concurrent-ruby", "~> 1.2"
+  spec.add_dependency "librevox", "~> 1.0"
   spec.add_dependency "minitest", ">= 5.5", "< 7.0"
 end

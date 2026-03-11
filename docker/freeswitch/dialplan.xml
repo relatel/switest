@@ -1,12 +1,4 @@
 <include>
-  <!-- Park calls to "park" destination -->
-  <extension name="switest-park">
-    <condition field="destination_number" expression="^park$">
-      <action application="set" data="hangup_after_bridge=true"/>
-      <action application="park"/>
-    </condition>
-  </extension>
-
   <!-- Answer and echo for "echo" destination -->
   <extension name="switest-echo">
     <condition field="destination_number" expression="^echo$">
@@ -25,11 +17,11 @@
     </condition>
   </extension>
 
-  <!-- Answer and bridge to echo (generates CHANNEL_BRIDGE events) -->
-  <extension name="switest-bridge-echo">
-    <condition field="destination_number" expression="^bridge_echo$">
-      <action application="answer"/>
-      <action application="bridge" data="loopback/echo/public"/>
+  <!-- Bridge: connect caller to another loopback destination -->
+  <extension name="switest-bridge">
+    <condition field="destination_number" expression="^bridge_(.+)$">
+      <action application="set" data="hangup_after_bridge=true"/>
+      <action application="bridge" data="loopback/$1/public"/>
     </condition>
   </extension>
 
@@ -41,14 +33,14 @@
     </condition>
   </extension>
 
-  <!-- Inbound test destinations - park for agent control -->
+  <!-- Inbound test destinations — park for agent control -->
   <extension name="switest-inbound-test">
     <condition field="destination_number" expression="^(inbound_test|reject_test)$">
       <action application="park"/>
     </condition>
   </extension>
 
-  <!-- Default: park anything else -->
+  <!-- Default: park for agent control -->
   <extension name="switest-default">
     <condition field="destination_number" expression="^(.*)$">
       <action application="set" data="hangup_after_bridge=true"/>

@@ -1,16 +1,24 @@
 # frozen_string_literal: true
 
 require "minitest/test"
-require "concurrent"
+require "async"
 
 module Switest
   class Scenario < Minitest::Test
+    include Assertions
+
     # Make Agent accessible to subclasses
     Agent = Switest::Agent
 
+    # Run each test inside an async reactor so that fibers, conditions,
+    # and async I/O work transparently for users extending Scenario.
+    def run(...)
+      Sync { super }
+    end
+
     def setup
       @events = Events.new
-      @client = ESL::Client.new
+      @client = Client.new
       @client.start
 
       # Route inbound calls through events system
@@ -20,7 +28,7 @@ module Switest
           from: call.from,
           call: call,
           headers: call.headers,
-          profile: call.headers["variable_sofia_profile_name"]
+          profile: call.headers[:variable_sofia_profile_name]
         })
       end
 
@@ -36,55 +44,6 @@ module Switest
     # Useful when tests need all legs hung up before proceeding (e.g., for CDR writes).
     def hangup_all(cause: "NORMAL_CLEARING", timeout: 5)
       @client&.hangup_all(cause: cause, timeout: timeout)
-    end
-
-    # Assertions
-    def assert_call(agent, timeout: 5)
-      success = agent.wait_for_call(timeout: timeout)
-      assert success, "Expected agent to receive a call within #{timeout} seconds"
-    end
-
-    def assert_no_call(agent, timeout: 2)
-      sleep timeout
-      refute agent.call?, "Expected agent to not have received a call"
-    end
-
-    def assert_answered(agent, timeout: 5)
-      assert agent.call?, "Agent has no call"
-      success = agent.wait_for_answer(timeout: timeout)
-      assert success, "Expected call to be answered within #{timeout} seconds"
-    end
-
-    def assert_bridged(agent, timeout: 5)
-      assert agent.call?, "Agent has no call"
-      success = agent.wait_for_bridge(timeout: timeout)
-      assert success, "Expected call to be bridged within #{timeout} seconds"
-    end
-
-    def assert_hungup(agent, timeout: 5)
-      assert agent.call?, "Agent has no call"
-      success = agent.wait_for_end(timeout: timeout)
-      assert success, "Expected call to be hung up within #{timeout} seconds"
-    end
-
-    def assert_not_hungup(agent, timeout: 2)
-      assert agent.call?, "Agent has no call"
-      sleep timeout
-      refute agent.ended?, "Expected call to still be active"
-    end
-
-    def assert_dtmf(agent, expected_dtmf, timeout: 5, after: 1, &block)
-      assert agent.call?, "Agent has no call"
-
-      if block
-        agent.flush_dtmf
-        Concurrent::ScheduledTask.execute(after) { block.call }
-        received = agent.receive_dtmf(count: expected_dtmf.length, timeout: timeout + after)
-      else
-        received = agent.receive_dtmf(count: expected_dtmf.length, timeout: timeout)
-      end
-
-      assert_equal expected_dtmf, received, "Expected DTMF '#{expected_dtmf}' but received '#{received}'"
     end
   end
 end

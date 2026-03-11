@@ -2,14 +2,14 @@
 
 require_relative "switest/version"
 require_relative "switest/configuration"
-require_relative "switest/case_insensitive_hash"
 require_relative "switest/events"
-require_relative "switest/esl/escaper"
-require_relative "switest/esl/event"
-require_relative "switest/esl/connection"
-require_relative "switest/esl/call"
-require_relative "switest/esl/client"
+require_relative "switest/escaper"
+require_relative "switest/from_parser"
+require_relative "switest/session"
+require_relative "switest/call"
+require_relative "switest/client"
 require_relative "switest/agent"
+require_relative "switest/assertions"
 require_relative "switest/scenario"
 
 module Switest

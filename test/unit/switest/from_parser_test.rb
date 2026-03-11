@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative "../../../test_helper"
+require_relative "../../test_helper"
 
-class Switest::ESL::FromParserTest < Minitest::Test
-  FromParser = Switest::ESL::FromParser
+class Switest::FromParserTest < Minitest::Test
+  FromParser = Switest::FromParser
 
   def test_plain_number_sets_number_and_name
     result = FromParser.parse("+4512345678")
