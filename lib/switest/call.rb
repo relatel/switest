@@ -189,7 +189,7 @@ module Switest
       msg << "execute-app-arg: #{arg}\n" if arg
       msg << "event-lock: true\n" if event_lock
       msg << "hangup-cause: #{hangup_cause}" if hangup_cause
-      @session.command(msg.chomp)
+      @session.send_message(msg.chomp)
     end
 
   end

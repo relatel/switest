@@ -26,13 +26,13 @@ module Switest
         @commands_sent = []
       end
 
-      def command(msg)
+      def send_message(msg)
         @commands_sent << msg
         mock_response
       end
 
       def bgapi(cmd)
-        command("bgapi #{cmd}")
+        send_message("bgapi #{cmd}")
       end
 
       private
