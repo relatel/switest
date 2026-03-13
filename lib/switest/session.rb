@@ -43,7 +43,7 @@ module Switest
     end
 
     def bgapi(cmd)
-      command("bgapi #{cmd}")
+      send_message("bgapi #{cmd}")
     end
   end
 end
