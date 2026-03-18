@@ -2,17 +2,17 @@
 
 module Switest
   # Escapes values for use in FreeSWITCH channel variable strings.
-    #
-    # FreeSWITCH originate syntax: {var1=value1,var2=value2}endpoint
-    #
-    # Escaping rules (per FreeSWITCH documentation):
-    # - Spaces: wrap value in single quotes
-    # - Commas in regular vars: use ^^<delim> syntax (e.g., ^^:val1:val2)
-    # - Commas in SIP headers (sip_h_*): escape with backslash (\,)
-    # - Single quotes in quoted values: escape with backslash (\')
-    #
-    # @see https://developer.signalwire.com/freeswitch/FreeSWITCH-Explained/Dialplan/Channel-Variables_16352493/
-    module Escaper
+  #
+  # FreeSWITCH originate syntax: {var1=value1,var2=value2}endpoint
+  #
+  # Escaping rules (per FreeSWITCH documentation):
+  # - Spaces: wrap value in single quotes
+  # - Commas in regular vars: use ^^<delim> syntax (e.g., ^^:val1:val2)
+  # - Commas in SIP headers (sip_h_*): escape with backslash (\,)
+  # - Single quotes in quoted values: escape with backslash (\')
+  #
+  # @see https://developer.signalwire.com/freeswitch/FreeSWITCH-Explained/Dialplan/Channel-Variables_16352493/
+  module Escaper
       module_function
 
       # Characters that require the value to be quoted

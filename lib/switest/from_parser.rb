@@ -2,16 +2,16 @@
 
 module Switest
   # Parses a `from` string into FreeSWITCH channel variables,
-    # replicating mod_rayo's parse_dial_from() behavior.
-    #
-    # Algorithm (matching mod_rayo):
-    # 1. Split on last space — before = display name, after = URI
-    # 2. No space — entire string is URI, no display name
-    # 3. Strip "" from display name (if quoted)
-    # 4. Strip <> from URI (if angle-bracketed)
-    # 5. Detect scheme: sip:/sips: with @ → SIP, tel: → TEL, plain → TEL, empty → UNKNOWN
-    # 6. Map to FreeSWITCH variables accordingly
-    module FromParser
+  # replicating mod_rayo's parse_dial_from() behavior.
+  #
+  # Algorithm (matching mod_rayo):
+  # 1. Split on last space — before = display name, after = URI
+  # 2. No space — entire string is URI, no display name
+  # 3. Strip "" from display name (if quoted)
+  # 4. Strip <> from URI (if angle-bracketed)
+  # 5. Detect scheme: sip:/sips: with @ → SIP, tel: → TEL, plain → TEL, empty → UNKNOWN
+  # 6. Map to FreeSWITCH variables accordingly
+  module FromParser
       module_function
 
       SIP_URI_PATTERN = /\Asips?:.+@/
