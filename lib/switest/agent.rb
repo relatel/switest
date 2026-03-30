@@ -51,14 +51,14 @@ module Switest
       !@call.nil?
     end
 
-    def answer(wait: 5)
+    def answer
       raise "No call to answer" unless @call
-      @call.answer(wait: wait)
+      @call.answer
     end
 
-    def hangup(wait: 5)
+    def hangup(cause = "NORMAL_CLEARING")
       raise "No call to hangup" unless @call
-      @call.hangup(wait: wait)
+      @call.hangup(cause)
     end
 
     def reject(reason = :decline)

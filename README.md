@@ -118,14 +118,14 @@ bob.answer
 | Method                        | Direction    | What it does                                |
 |-------------------------------|-------------|---------------------------------------------|
 | `wait_for_answer(timeout:)`   | Outbound    | Passively waits for the remote to answer    |
-| `answer(wait:)`               | Inbound     | Actively answers the call                   |
+| `answer`                      | Inbound     | Actively answers the call                   |
 
 #### wait_for_end vs hangup
 
 | Method                   | Use case              | What it does                         |
 |--------------------------|-----------------------|--------------------------------------|
 | `wait_for_end(timeout:)` | Remote hangs up       | Passively waits for the call to end  |
-| `hangup(wait:)`          | You hang up           | Sends hangup and waits               |
+| `hangup`                 | You hang up           | Sends hangup via execute_app         |
 
 ## API Reference
 
@@ -141,9 +141,9 @@ Agent.listen_for_call(guards)  # e.g. to: /pattern/, from: /pattern/
 #### Actions
 
 ```ruby
-agent.answer(wait: 5)             # Answer an inbound call
-agent.hangup(wait: 5)             # Hang up
-agent.reject(reason = :decline)   # Reject inbound call (:decline or :busy)
+agent.answer                      # Answer an inbound call
+agent.hangup                      # Hang up (uses execute_app)
+agent.reject(:decline)            # Reject inbound call (:decline or :busy)
 agent.play_audio(url)             # Play an audio file or tone stream
 agent.send_dtmf(digits)           # Send DTMF tones
 agent.receive_dtmf(count:, timeout:)  # Receive DTMF digits
