@@ -31,6 +31,19 @@ module Switest
         mock_response
       end
 
+      def execute_app(app, uuid, args = nil, **params)
+        headers = {
+          event_lock:       true,
+          call_command:     "execute",
+          execute_app_name: app,
+          execute_app_arg:  args,
+        }.merge(params)
+          .map { |key, value| "#{key.to_s.tr('_', '-')}: #{value}" }
+
+        @commands_sent << "sendmsg #{uuid}\n#{headers.join("\n")}"
+        mock_response
+      end
+
       def bgapi(cmd)
         send_message("bgapi #{cmd}")
       end

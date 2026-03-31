@@ -58,36 +58,32 @@ module Switest
     end
 
     # Actions
-    def answer(wait: 5)
+    def answer
       return unless @state == :ringing && inbound?
-      sendmsg("execute", "answer")
-      return unless wait
-      wait_for_answer(timeout: wait)
+      @session.execute_app("answer", @id)
     end
 
-    def hangup(cause = "NORMAL_CLEARING", wait: 5)
+    def hangup(cause = "NORMAL_CLEARING")
       return if ended?
-      sendmsg("hangup", hangup_cause: cause)
-      return unless wait
-      wait_for_end(timeout: wait)
+      @session.execute_app("hangup", @id, cause)
     end
 
-    def reject(reason = :decline, wait: 5)
+    def reject(reason = :decline)
       return unless @state == :ringing && inbound?
       cause = case reason
               when :busy then "USER_BUSY"
               when :decline then "CALL_REJECTED"
               else "CALL_REJECTED"
               end
-      hangup(cause, wait: wait)
+      hangup(cause)
     end
 
-    def play_audio(url, wait: true)
-      sendmsg("execute", "playback", url, event_lock: wait)
+    def play_audio(url)
+      @session.execute_app("playback", @id, url)
     end
 
-    def send_dtmf(digits, wait: true)
-      play_audio("tone_stream://d=200;w=250;#{digits}", wait: wait)
+    def send_dtmf(digits)
+      play_audio("tone_stream://d=200;w=250;#{digits}")
     end
 
     def flush_dtmf
@@ -181,16 +177,6 @@ module Switest
     end
 
     private
-
-    def sendmsg(command, app = nil, arg = nil, event_lock: false, hangup_cause: nil)
-      msg = +"sendmsg #{@id}\n"
-      msg << "call-command: #{command}\n"
-      msg << "execute-app-name: #{app}\n" if app
-      msg << "execute-app-arg: #{arg}\n" if arg
-      msg << "event-lock: true\n" if event_lock
-      msg << "hangup-cause: #{hangup_cause}" if hangup_cause
-      @session.send_message(msg.chomp)
-    end
 
   end
 end

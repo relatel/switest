@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 require "securerandom"
+require "async/barrier"
 require "async/promise"
-require "io/endpoint/host_endpoint"
 require_relative "from_parser"
 
 module Switest
@@ -24,14 +24,16 @@ module Switest
       Session.offer_handler = method(:handle_inbound_offer)
       Session.connection_promise = Async::Promise.new
 
-      endpoint = IO::Endpoint.tcp(config.host, config.port)
-      client = Librevox::Client.new(Session, endpoint, auth: config.password)
-      @client_task = Async { client.run }
+      @client_task = Async do
+        Librevox::Client.start(Session, host: config.host, port: config.port, auth: config.password)
+      end
 
       # Wait for the session to be established
-      @session = Async::Task.current.with_timeout(config.default_timeout) do
+      session = Async::Task.current.with_timeout(config.default_timeout) do
         Session.connection_promise.wait
       end
+
+      @session = session
 
       self
     rescue Async::TimeoutError
@@ -58,16 +60,18 @@ module Switest
     def hangup_all(cause: "NORMAL_CLEARING", timeout: 5)
       active = @calls.values.reject(&:ended?)
 
-      active.each do |call|
-        call.hangup(cause, wait: false) rescue nil
+      Async::Task.current.with_timeout(timeout) do
+        barrier = Async::Barrier.new
+        active.each do |call|
+          barrier.async do
+            call.hangup(cause) rescue nil
+            call.wait_for_end(timeout: timeout) unless call.ended?
+          end
+        end
+        barrier.wait
       end
-
-      deadline = Time.now + timeout
-      active.each do |call|
-        remaining = deadline - Time.now
-        break if remaining <= 0
-        call.wait_for_end(timeout: remaining) unless call.ended?
-      end
+    rescue Async::TimeoutError
+      # Best-effort cleanup; don't block teardown
     end
 
     def dial(to:, from: nil, timeout: nil, headers: {})

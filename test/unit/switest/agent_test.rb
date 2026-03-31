@@ -99,7 +99,7 @@ class Switest::AgentTest < Minitest::Test
     call.handle_callstate("RINGING")
     agent = Switest::Agent.new(call)
 
-    agent.answer(wait: false)
+    agent.answer
 
     assert @session.commands_sent.any? { |cmd| cmd.include?("execute-app-name: answer") }
   end
@@ -108,8 +108,8 @@ class Switest::AgentTest < Minitest::Test
     call = make_call
     agent = Switest::Agent.new(call)
 
-    agent.hangup(wait: false)
+    agent.hangup
 
-    assert @session.commands_sent.any? { |cmd| cmd.include?("call-command: hangup") }
+    assert @session.commands_sent.any? { |cmd| cmd.include?("execute-app-name: hangup") }
   end
 end
